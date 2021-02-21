@@ -1,0 +1,142 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.33.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 5e990fe9788c4aec9c6bea53640bec7ce96061fc31149d7d774e9430b147e749
+
+name:           diplomska
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/diplomska#readme>
+homepage:       https://github.com/githubuser/diplomska#readme
+bug-reports:    https://github.com/githubuser/diplomska/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2021 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/diplomska
+
+library
+  exposed-modules:
+      Aggregates
+      Api
+      IntMap
+      Lib
+      Map
+      Repository.Handlers
+      Repository.Model
+  other-modules:
+      Paths_diplomska
+  hs-source-dirs:
+      src
+  build-depends:
+      acid-state
+    , aeson
+    , array
+    , attoparsec
+    , base >=4.7 && <5
+    , base-compat-batteries
+    , blaze-html
+    , blaze-markup
+    , bytestring
+    , containers
+    , directory
+    , http-media
+    , lens
+    , lucid
+    , mtl
+    , safecopy
+    , servant
+    , servant-server
+    , string-conversions
+    , text
+    , time
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable diplomska-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_diplomska
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      acid-state
+    , aeson
+    , array
+    , attoparsec
+    , base
+    , base-compat-batteries
+    , blaze-html
+    , blaze-markup
+    , bytestring
+    , containers
+    , diplomska
+    , directory
+    , http-media
+    , lens
+    , lucid
+    , mtl
+    , safecopy
+    , servant
+    , servant-server
+    , string-conversions
+    , text
+    , time
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+  default-language: Haskell2010
+
+test-suite diplomska-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_diplomska
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      acid-state
+    , aeson
+    , array
+    , attoparsec
+    , base
+    , base-compat-batteries
+    , blaze-html
+    , blaze-markup
+    , bytestring
+    , containers
+    , diplomska
+    , directory
+    , hspec
+    , hspec-wai
+    , hspec-wai-json
+    , http-media
+    , lens
+    , lucid
+    , mtl
+    , safecopy
+    , servant
+    , servant-server
+    , string-conversions
+    , text
+    , time
+    , unordered-containers
+    , vector
+    , wai
+    , warp
+  default-language: Haskell2010

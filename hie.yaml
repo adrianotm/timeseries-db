@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "diplomska:lib"
+
+    - path: "./app/Main.hs"
+      component: "diplomska:exe:diplomska-exe"
+
+    - path: "./app/Paths_diplomska.hs"
+      component: "diplomska:exe:diplomska-exe"
+
+    - path: "./test"
+      component: "diplomska:test:diplomska-test"
