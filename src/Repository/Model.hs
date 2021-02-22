@@ -55,7 +55,8 @@ data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite times
 data QueryModel = Q { gt :: Maybe Timestamp
                     , lt :: Maybe Timestamp
                     , ge :: Maybe Timestamp
-                    , le :: Maybe Timestamp}
+                    , le :: Maybe Timestamp
+                    }
         deriving (Generic, ToJSON, FromJSON)
 
 emptyQM :: QueryModel -> Bool

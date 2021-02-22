@@ -47,6 +47,7 @@ type TagApi = Capture "tagV" String :> ReqBody '[JSON] QueryModel :> Get '[JSON]
 type BasicTimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] [TS]
+   :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
 
 type TimeseriesApi =
@@ -97,6 +98,7 @@ tsHandlers = timestampHandlers
         :<|> tagHandlers
         :<|> updateData
         :<|> filterData Nothing
+        :<|> getData
         :<|> clearData
 
 serverT :: TSServer API

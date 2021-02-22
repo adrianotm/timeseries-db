@@ -9,63 +9,51 @@ module IntMap
 
 import           Control.Monad.State
 import           Data.IntMap.Internal
-import qualified Data.IntMap.Strict   as IM
+import qualified Data.IntMap.Lazy     as IM
 import qualified Data.Map.Strict      as M
 
 --- Bool - return the equal key
-lookupGT' :: Bool -> Key -> IM.IntMap a -> [a]
+lookupGT' :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
 lookupGT' re k im =
    case im of
      Bin p m l r
-       | nomatch k p m -> if mask k m > p then [] else IM.elems im
-       | zero k m -> lookupGT' re k l ++ IM.elems r
-       | otherwise -> lookupGT' re k r
-     Tip ky y
-       | k < ky -> [y]
-       | re -> [y | k == ky]
-       | otherwise -> []
-     Nil -> []
+       | nomatch k p m -> if mask k m > p then Nil else im
+       | zero k m -> Bin p m (lookupGT' re k l) r
+       | otherwise -> r
+     t@(Tip ky y)
+       | k < ky -> t
+       | re && k == ky -> t
+       | otherwise -> Nil
+     Nil -> Nil
 
 --- Bool - return the equal key
-lookupLT' :: Bool -> Key -> IM.IntMap a -> [a]
+lookupLT' :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
 lookupLT' re k im =
    case im of
      Bin p m l r
-       | nomatch k p m -> if mask k m < p then [] else IM.elems im
+       | nomatch k p m -> if mask k m < p then Nil else im
        | zero k m -> lookupLT' re k l
-       | otherwise -> (IM.elems $! l) ++ lookupLT' re k r
-     Tip ky y
-       | k > ky -> [y]
-       | re -> [y | k == ky]
-       | otherwise -> []
-     Nil -> []
+       | otherwise -> Bin p m l $ lookupLT' re k r
+     t@(Tip ky y)
+       | k > ky -> t
+       | re && k == ky -> t
+       | otherwise -> Nil
+     Nil -> Nil
 
 
 --- Bool - return the equal key
-lookupGLT' :: Bool -> Bool -> Key -> Key -> IM.IntMap a -> [a]
+lookupGLT' :: Bool -> Bool -> Key -> Key -> IM.IntMap a -> IM.IntMap a
 lookupGLT' re1 re2 k1 k2 im =
    case im of
      Bin p m l r
-       | mask k1 m <= p && p <= mask k2 m -> lookupGLT' re1 re2 k1 k2 l
-                                          ++ lookupGLT' re1 re2 k1 k2 r
-       | otherwise -> []
-     Tip ky y
-       | k1 < ky && ky < k2 -> [y]
-       | re1 && ky < k2 -> [y | k1 == ky]
-       | k1 < ky && re2 -> [y | k2 == ky]
-       | otherwise -> []
-     Nil -> []
-
-lookupLT = lookupLT' False
-lookupLE = lookupLT' True
-
-lookupGT = lookupGT' False
-lookupGE = lookupGT' True
-
-lookupGLT = lookupGLT' False False
-lookupGTLE = lookupGLT' False True
-lookupGELT = lookupGLT' True False
-lookupGELE = lookupGLT' True True
+       | mask k1 m <= p && p <= mask k2 m -> Bin p m (lookupGLT' re1 re2 k1 k2 l) (lookupGLT' re1 re2 k1 k2 r)
+       | otherwise -> Nil
+     t@(Tip ky y)
+       | k1 < ky && ky < k2 -> t
+       | re1 && ky < k2 && k1 == ky -> t
+       | k1 < ky && re2 && k2 == ky -> t
+       | otherwise -> Nil
+     Nil -> Nil
 
 insertWithIx :: Ord a => Key -> a -> IM.IntMap (M.Map a Int) -> State Int (IM.IntMap (M.Map a Int))
 insertWithIx k s im = do ix <- get
