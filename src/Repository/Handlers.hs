@@ -65,10 +65,10 @@ filterTS tg qm = filterTS' tg $ queryModelToRes qm
 getAllTS :: Query TimeseriesDB [TS]
 getAllTS = filterTS' Nothing id
 
-searchTag :: Either String Int -> Query TimeseriesDB [TS]
+searchTag :: Tag -> Query TimeseriesDB [TS]
 searchTag s = do db@TimeseriesDB{..} <- ask
                  return $ case M.lookup s sIx of
-                            Just ixs -> map (data' V.!) (toList ixs)
+                            Just ixs -> getList $ foldMap (toCollect . (V.!) data') ixs
                             Nothing  -> []
 
 clearTS :: Update TimeseriesDB ()

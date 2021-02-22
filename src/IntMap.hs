@@ -9,7 +9,7 @@ module IntMap
 
 import           Control.Monad.State
 import           Data.IntMap.Internal
-import qualified Data.IntMap.Lazy     as IM
+import qualified Data.IntMap.Strict   as IM
 import qualified Data.Map.Strict      as M
 
 --- Bool - return the equal key
