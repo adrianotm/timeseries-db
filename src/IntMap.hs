@@ -12,6 +12,7 @@ import           Data.IntMap.Internal
 import qualified Data.IntMap.Strict   as IM
 import qualified Data.Map.Strict      as M
 
+
 --- Bool - return the equal key
 lookupGT' :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
 lookupGT' re k im =

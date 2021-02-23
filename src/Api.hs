@@ -10,14 +10,15 @@
 {-# LANGUAGE TypeOperators         #-}
 module Api where
 
-import           Control.Exception.Base   (bracket)
+import           Control.Exception.Base     (bracket)
 
 import           Control.Monad.Reader
-import           Data.Acid                as A
-import           Data.Acid.Advanced       as AA
-import           Data.Aeson               (FromJSON, ToJSON)
+import           Data.Acid                  as A
+import           Data.Acid.Advanced         as AA
+import           Data.Aeson                 (FromJSON, ToJSON)
+import qualified Data.ByteString.Lazy.Char8 as C
 import           Data.Functor
-import           Data.IntMap              as IM
+import           Data.IntMap                as IM
 import           Debug.Trace
 import           GHC.Generics
 import           Network.Wai
@@ -38,7 +39,7 @@ type TimestampApi = Capture "ts" Timestamp :> Get '[JSON] [TS]
 
 type BasicTimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
-   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] [TS]
+   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] AggregateR
    :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
 
@@ -66,13 +67,12 @@ findData ts = ask >>= flip query' (SearchTS ts)
                             Nothing -> throwError $ err404 { errBody = "Timestamp not found" }
 
 queryData :: QueryModel
-           -> AcidReaderT [TS]
-queryData qm  | emptyQM qm = getData
+           -> AcidReaderT AggregateR
+queryData qm  | emptyQM qm = Left <$> getData
               | illegalQM qm = throwError $ err404 { errBody = "Illegal query "}
-              | otherwise = ask >>= flip query' (FilterTS qm)
-
-findTag :: Tag -> AcidReaderT [TS]
-findTag s = ask >>= flip query' (SearchTag s)
+              | otherwise = ask >>= flip query' (FilterTS qm) >>= \case
+                                                               (Right a) -> return a
+                                                               (Left m) -> throwError $ err404 { errBody = C.pack m }
 
 timestampHandlers :: TSServer TimestampApi
 timestampHandlers = findData

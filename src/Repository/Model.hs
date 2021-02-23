@@ -20,12 +20,17 @@ import           GHC.Generics        (Generic)
 import qualified IntMap              as IM
 import qualified Map                 as M
 
-import           Aggregates
-
 type Timestamp = Int
 type Tag = Either String Int
-type Value = Int
+type Value = Float
 type Ix = Int
+
+type CollectR = [TS]
+
+newtype AverageR = AvgR { result :: Value }
+                deriving(Show, Generic, ToJSON, FromJSON)
+
+type AggregateR = Either CollectR AverageR
 
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Value }
     deriving (Show,Generic)
@@ -79,14 +84,15 @@ emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing) = True
 emptyQM _                                                   = False
 
 justTag :: QueryModel -> Maybe Tag
-justTag (Q Nothing Nothing Nothing Nothing a Nothing) = a
-justTag _                                             = Nothing
+justTag (Q Nothing Nothing Nothing Nothing a _) = a
+justTag _                                       = Nothing
 
 illegalQM :: QueryModel -> Bool
 illegalQM Q {gt = (Just _), ge = (Just _)} = True
 illegalQM Q {lt = (Just _), le = (Just _)} = True
 illegalQM _                                = False
 
+deriveSafeCopy 0 'base ''AverageR
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''QueryModel
 deriveSafeCopy 0 'base ''TimeseriesDB
