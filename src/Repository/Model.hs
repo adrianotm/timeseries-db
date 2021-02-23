@@ -10,15 +10,17 @@ module Repository.Model where
 
 import           Control.Applicative ((<|>))
 import           Data.Acid           (Query, Update, makeAcidic)
-import           Data.Aeson          (FromJSON, ToJSON, object, pairs,
+import           Data.Aeson          (FromJSON, Object, ToJSON, object, pairs,
                                       parseJSON, toEncoding, toJSON, withObject,
-                                      (.:), (.=))
+                                      (.:), (.:?), (.=))
 import           Data.SafeCopy       (base, deriveSafeCopy)
 import qualified Data.Sequence       as S
 import qualified Data.Vector         as V
 import           GHC.Generics        (Generic)
 import qualified IntMap              as IM
 import qualified Map                 as M
+
+import           Aggregates
 
 type Timestamp = Int
 type Tag = Either String Int
@@ -52,16 +54,33 @@ data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite times
                                    sIx   :: M.Map Tag (S.Seq Ix), -- composite tag index
                                    data' :: V.Vector TS } -- all data
 
-data QueryModel = Q { gt :: Maybe Timestamp
-                    , lt :: Maybe Timestamp
-                    , ge :: Maybe Timestamp
-                    , le :: Maybe Timestamp
+data QueryModel = Q { gt      :: Maybe Timestamp
+                    , lt      :: Maybe Timestamp
+                    , ge      :: Maybe Timestamp
+                    , le      :: Maybe Timestamp
+                    , tagEq   :: Maybe Tag
+                    , aggFunc :: Maybe String
                     }
-        deriving (Generic, ToJSON, FromJSON)
+        deriving (Generic, ToJSON)
+
+instance FromJSON QueryModel where
+    parseJSON = withObject "QueryModel" $ \v -> Q
+        <$> v .:? "gt"
+        <*> v .:? "lt"
+        <*> v .:? "ge"
+        <*> v .:? "le"
+        <*> (   (fmap Left <$> v .:? "tagEq")
+            <|> (fmap Right <$> v .:? "tagEq")
+            )
+        <*> v .:? "aggFunc"
 
 emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing) = True
-emptyQM _                                   = False
+emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing) = True
+emptyQM _                                                   = False
+
+justTag :: QueryModel -> Maybe Tag
+justTag (Q Nothing Nothing Nothing Nothing a Nothing) = a
+justTag _                                             = Nothing
 
 illegalQM :: QueryModel -> Bool
 illegalQM Q {gt = (Just _), ge = (Just _)} = True
