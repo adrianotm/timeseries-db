@@ -25,6 +25,7 @@ type Timestamp = Int
 type Tag = Either String Int
 type Value = Float
 type Ix = Int
+type Agg = String
 
 instance Bounded Float where
     { minBound = -1/0; maxBound = 1/0 }
@@ -74,8 +75,9 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , lt      :: Maybe Timestamp
                     , ge      :: Maybe Timestamp
                     , le      :: Maybe Timestamp
+                    , tsEq    :: Maybe Timestamp
                     , tagEq   :: Maybe Tag
-                    , aggFunc :: Maybe String
+                    , aggFunc :: Maybe Agg
                     }
         deriving (Generic, ToJSON)
 
@@ -85,23 +87,28 @@ instance FromJSON QueryModel where
         <*> v .:? "lt"
         <*> v .:? "ge"
         <*> v .:? "le"
+        <*> v .:? "tsEq"
         <*> (   (fmap Left <$> v .:? "tagEq")
             <|> (fmap Right <$> v .:? "tagEq")
             )
         <*> v .:? "aggFunc"
 
 emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing) = True
-emptyQM _                                                   = False
+emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
+emptyQM _                                                           = False
 
 justTag :: QueryModel -> Maybe Tag
-justTag (Q Nothing Nothing Nothing Nothing a _) = a
-justTag _                                       = Nothing
+justTag (Q Nothing Nothing Nothing Nothing Nothing a _) = a
+justTag _                                               = Nothing
 
 illegalQM :: QueryModel -> Bool
-illegalQM Q {gt = (Just _), ge = (Just _)} = True
-illegalQM Q {lt = (Just _), le = (Just _)} = True
-illegalQM _                                = False
+illegalQM Q {gt = (Just _), ge = (Just _)}   = True
+illegalQM Q {lt = (Just _), le = (Just _)}   = True
+illegalQM Q {tsEq = (Just _), gt = (Just _)} = True
+illegalQM Q {tsEq = (Just _), ge = (Just _)} = True
+illegalQM Q {tsEq = (Just _), lt = (Just _)} = True
+illegalQM Q {tsEq = (Just _), le = (Just _)} = True
+illegalQM _                                  = False
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''QueryR

@@ -45,20 +45,17 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                          where f tss = (timestamp tss, tag tss)
                                z = tag
 
-searchTS :: Timestamp -> Query TimeseriesDB (Maybe [TS])
-searchTS ts = ask <&> \TimeseriesDB{..} -> getList . mapToM toCollect Nothing data' <$> IM.lookup ts tIx
-
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either String QueryR)
 filterTS qm@Q{..} = maybe
-                    (runExceptT $ tsQuery aggFunc tagEq $ qmToF qm)
+                    (runExceptT $ tsQuery aggFunc tsEq tagEq $ qmToF qm)
                     (runExceptT . tagQuery aggFunc)
                     (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]
-getAllTS = ask <&> aggTS getList toCollect Nothing id
+getAllTS = ask <&> aggTS' getList toCollect Nothing id
 
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty
 
-makeAcidic ''TimeseriesDB ['insertTS, 'getAllTS, 'clearTS, 'searchTS, 'filterTS]
+makeAcidic ''TimeseriesDB ['insertTS, 'getAllTS, 'clearTS, 'filterTS]

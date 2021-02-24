@@ -44,6 +44,7 @@ dependencies:
   - lens
   - unordered-containers
   - vector
+  - transformers
 
 library:
   source-dirs: src

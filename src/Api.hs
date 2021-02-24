@@ -35,17 +35,12 @@ debug = flip trace
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT
 
-type TimestampApi = Capture "ts" Timestamp :> Get '[JSON] [TS]
 
-type BasicTimeseriesApi =
+type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
-
-type TimeseriesApi =
-  "timestamp" :> TimestampApi
-   :<|> BasicTimeseriesApi
 
 type API = "timeseries" :> TimeseriesApi
 
@@ -61,11 +56,6 @@ getData = ask >>= flip query' GetAllTS
 clearData :: AcidReaderT NoContent
 clearData = (ask >>= flip update' ClearTS) $> NoContent
 
-findData :: Timestamp -> AcidReaderT [TS]
-findData ts = ask >>= flip query' (SearchTS ts)
-                  >>= \case Just r -> return r
-                            Nothing -> throwError $ err404 { errBody = "Timestamp not found" }
-
 queryData :: QueryModel
            -> AcidReaderT QueryR
 queryData qm  | emptyQM qm = toCollR <$> getData
@@ -74,12 +64,8 @@ queryData qm  | emptyQM qm = toCollR <$> getData
                                                                   (\m -> throwError $ err404 { errBody = C.pack m })
                                                                   return
 
-timestampHandlers :: TSServer TimestampApi
-timestampHandlers = findData
-
 tsHandlers :: TSServer TimeseriesApi
-tsHandlers = timestampHandlers
-        :<|> updateData
+tsHandlers = updateData
         :<|> queryData
         :<|> getData
         :<|> clearData

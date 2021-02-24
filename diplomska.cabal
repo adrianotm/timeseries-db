@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1e2101844039c41a528681ac50492e0f123e45951810ed7e84b59912664816e8
+-- hash: 7694fcdc512d24f3ba1e746b0e142f89b55241c5cc51245d85519cc613aed998
 
 name:           diplomska
 version:        0.1.0.0
@@ -61,6 +61,7 @@ library
     , string-conversions
     , text
     , time
+    , transformers
     , unordered-containers
     , vector
     , wai
@@ -97,6 +98,7 @@ executable diplomska-exe
     , string-conversions
     , text
     , time
+    , transformers
     , unordered-containers
     , vector
     , wai
@@ -137,6 +139,7 @@ test-suite diplomska-test
     , string-conversions
     , text
     , time
+    , transformers
     , unordered-containers
     , vector
     , wai
