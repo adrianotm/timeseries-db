@@ -1,5 +1,6 @@
 module Aggregates where
 
+import           Control.Monad.Except
 import           Data.Foldable
 import           Repository.Model
 
@@ -37,3 +38,6 @@ toAggR = QR . Right . AggR
 
 toCollR :: [TS] -> QueryR
 toCollR = QR . Left
+
+handleAgg :: Monad m => String -> Maybe Value  -> ExceptT String m QueryR
+handleAgg err = maybe (throwError err) (return . toAggR)

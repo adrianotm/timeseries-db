@@ -26,6 +26,9 @@ type Tag = Either String Int
 type Value = Float
 type Ix = Int
 
+instance Bounded Float where
+    { minBound = -1/0; maxBound = 1/0 }
+
 type ExceptionQuery = ExceptT String (Query TimeseriesDB)
 
 type CollectR = [TS]

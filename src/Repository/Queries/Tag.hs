@@ -12,6 +12,7 @@ import           Data.Foldable
 import           Data.Functor
 import           Data.Maybe
 import           Data.Monoid
+import           Data.Semigroup
 import qualified Data.Vector          as V
 import qualified DataS.Map            as M
 
@@ -27,12 +28,17 @@ aggTag :: Monoid m =>
     -> Maybe a
 aggTag get to tg TimeseriesDB{..} = M.lookup tg sIx <&> get . foldMap' (to . (V.!) data')
 
+noDataErr :: Tag -> String
+noDataErr tg = "No data for tag " ++ either show show tg
+
 tagQuery :: Maybe String
          -> Tag
          -> ExceptionQuery QueryR
 tagQuery (Just agg) tg
-  | agg == "avg" = ask >>= maybe (throwError "Average failed") (return . toAggR) . join . aggTag getAverage (toAvg . value) tg
-  | agg == "sum" = ask >>= maybe (throwError $ "No data for tag " ++ either show show tg) (return . toAggR) . aggTag getSum (Sum . value) tg
+  | agg == "avg" = ask >>= handleAgg "Average Failed" . join . aggTag getAverage (toAvg . value) tg
+  | agg == "sum" = ask >>= handleAgg (noDataErr tg) . aggTag getSum (Sum . value) tg
   | agg == "count" = ask >>= maybe (return $ toAggR 0) (return . toAggR) . aggTag getSum (const $ Sum 1) tg
+  | agg == "min" = ask >>= handleAgg (noDataErr tg) . aggTag getMin (Min . value) tg
+  | agg == "max" = ask >>= maybe (throwError $ noDataErr tg) (return . toAggR) . aggTag getMax (Max . value) tg
   | otherwise = throwError "Illegal aggregation function"
 tagQuery Nothing tg    = ask <&> aggTag getList toCollect tg <&> toCollR <$> fromMaybe []
