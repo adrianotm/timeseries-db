@@ -31,3 +31,9 @@ instance Num n => Semigroup (Average n) where
 instance Num n => Monoid (Average n) where
   mappend = (<>)
   mempty = Average 0 0
+
+toAggR :: Value -> QueryR
+toAggR = QR . Right . AggR
+
+toCollR :: [TS] -> QueryR
+toCollR = QR . Left

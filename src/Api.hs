@@ -39,7 +39,7 @@ type TimestampApi = Capture "ts" Timestamp :> Get '[JSON] [TS]
 
 type BasicTimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
-   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] AggregateR
+   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
 
@@ -67,12 +67,12 @@ findData ts = ask >>= flip query' (SearchTS ts)
                             Nothing -> throwError $ err404 { errBody = "Timestamp not found" }
 
 queryData :: QueryModel
-           -> AcidReaderT AggregateR
-queryData qm  | emptyQM qm = Left <$> getData
+           -> AcidReaderT QueryR
+queryData qm  | emptyQM qm = toCollR <$> getData
               | illegalQM qm = throwError $ err404 { errBody = "Illegal query "}
-              | otherwise = ask >>= flip query' (FilterTS qm) >>= \case
-                                                               (Right a) -> return a
-                                                               (Left m) -> throwError $ err404 { errBody = C.pack m }
+              | otherwise = ask >>= flip query' (FilterTS qm) >>= either
+                                                                  (\m -> throwError $ err404 { errBody = C.pack m })
+                                                                  return
 
 timestampHandlers :: TSServer TimestampApi
 timestampHandlers = findData

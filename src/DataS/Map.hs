@@ -1,5 +1,5 @@
-module Map
-   ( module Map
+module DataS.Map
+   ( module DataS.Map
    , M.Map
    , M.empty
    , M.foldl

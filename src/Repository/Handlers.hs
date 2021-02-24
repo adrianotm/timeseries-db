@@ -17,8 +17,8 @@ import           Data.Foldable
 import           Data.Functor
 import qualified Data.Sequence          as S
 import qualified Data.Vector            as V
-import qualified IntMap                 as IM
-import qualified Map                    as M
+import qualified DataS.IntMap           as IM
+import qualified DataS.Map              as M
 
 import           Aggregates
 import           Repository.Model
@@ -46,14 +46,14 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                                z = tag
 
 searchTS :: Timestamp -> Query TimeseriesDB (Maybe [TS])
-searchTS ts = do TimeseriesDB{..} <- ask
-                 return $ getList . mapToM toCollect Nothing data' <$> IM.lookup ts tIx
+searchTS ts = ask <&> \TimeseriesDB{..} -> getList . mapToM toCollect Nothing data' <$> IM.lookup ts tIx
 
 filterTS :: QueryModel
-         -> Query TimeseriesDB (Either String AggregateR)
-filterTS qm = case justTag qm of
-                (Just tg) -> runExceptT $ tagQuery (aggFunc qm) tg
-                Nothing   -> runExceptT $ tsQuery (aggFunc qm) (tagEq qm) $ qmToF qm
+         -> Query TimeseriesDB (Either String QueryR)
+filterTS qm@Q{..} = maybe
+                    (runExceptT $ tsQuery aggFunc tagEq $ qmToF qm)
+                    (runExceptT . tagQuery aggFunc)
+                    (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]
 getAllTS = ask <&> aggTS getList toCollect Nothing id

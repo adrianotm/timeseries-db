@@ -1,5 +1,5 @@
-module IntMap
-   ( module IntMap
+module DataS.IntMap
+   ( module DataS.IntMap
    , IM.IntMap
    , IM.foldrWithKey
    , IM.lookup

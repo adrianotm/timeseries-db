@@ -7,7 +7,7 @@ import           Control.Exception.Base   (bracket)
 import           Data.Acid.Local
 import           Data.IntMap              as IM
 import           Data.Vector              as V
-import           Map                      as M
+import           DataS.Map                as M
 import           Network.Wai.Handler.Warp
 
 import           Api

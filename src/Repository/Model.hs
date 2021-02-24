@@ -8,29 +8,37 @@
 {-# LANGUAGE TypeFamilies      #-}
 module Repository.Model where
 
-import           Control.Applicative ((<|>))
-import           Data.Acid           (Query, Update, makeAcidic)
-import           Data.Aeson          (FromJSON, Object, ToJSON, object, pairs,
-                                      parseJSON, toEncoding, toJSON, withObject,
-                                      (.:), (.:?), (.=))
-import           Data.SafeCopy       (base, deriveSafeCopy)
-import qualified Data.Sequence       as S
-import qualified Data.Vector         as V
-import           GHC.Generics        (Generic)
-import qualified IntMap              as IM
-import qualified Map                 as M
+import           Control.Applicative  ((<|>))
+import           Control.Monad.Except (ExceptT)
+import           Data.Acid            (Query, Update, makeAcidic)
+import           Data.Aeson           (FromJSON, Object, ToJSON, object, pairs,
+                                       parseJSON, toEncoding, toJSON,
+                                       withObject, (.:), (.:?), (.=))
+import           Data.SafeCopy        (base, deriveSafeCopy)
+import qualified Data.Sequence        as S
+import qualified Data.Vector          as V
+import qualified DataS.IntMap         as IM
+import qualified DataS.Map            as M
+import           GHC.Generics         (Generic)
 
 type Timestamp = Int
 type Tag = Either String Int
 type Value = Float
 type Ix = Int
 
+type ExceptionQuery = ExceptT String (Query TimeseriesDB)
+
 type CollectR = [TS]
 
-newtype AverageR = AvgR { result :: Value }
+newtype AggR = AggR { result :: Value }
                 deriving(Show, Generic, ToJSON, FromJSON)
 
-type AggregateR = Either CollectR AverageR
+newtype QueryR = QR (Either CollectR AggR)
+                deriving(Show, Generic)
+
+instance ToJSON QueryR where
+    toJSON (QR qr) = either toJSON toJSON qr
+    toEncoding (QR qr) = either toEncoding toEncoding qr
 
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Value }
     deriving (Show,Generic)
@@ -92,7 +100,8 @@ illegalQM Q {gt = (Just _), ge = (Just _)} = True
 illegalQM Q {lt = (Just _), le = (Just _)} = True
 illegalQM _                                = False
 
-deriveSafeCopy 0 'base ''AverageR
+deriveSafeCopy 0 'base ''AggR
+deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''QueryModel
 deriveSafeCopy 0 'base ''TimeseriesDB
