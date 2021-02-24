@@ -10,7 +10,7 @@ module Repository.Handlers where
 
 import           Control.Applicative
 import           Control.Monad.Except
-import           Control.Monad.Reader   (ask)
+import           Control.Monad.Reader   (ask, runReader, runReaderT)
 import           Control.Monad.State    (MonadState, evalState, get, put)
 import           Data.Acid              (Query, Update, makeAcidic)
 import           Data.Foldable
@@ -47,10 +47,10 @@ insertTS ts = do db@TimeseriesDB{..} <- get
 
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either String QueryR)
-filterTS qm@Q{..} = maybe
-                    (runExceptT $ tsQuery aggFunc tsEq tagEq $ qmToF qm)
-                    (runExceptT . tagQuery aggFunc)
-                    (justTag qm)
+filterTS qm@Q{..} = ask <&> \db -> maybe
+                                  (runReader (runExceptT tsQuery) $ TSQuery tagEq aggFunc tsEq (qmToF qm) qm db)
+                                  (runReader (runExceptT tagQuery) . TagQ aggFunc db)
+                                  (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]
 getAllTS = ask <&> aggTS' getList toCollect Nothing id
