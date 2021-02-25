@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7694fcdc512d24f3ba1e746b0e142f89b55241c5cc51245d85519cc613aed998
+-- hash: cd4f53c393b81c7d3d76a9fe5a80176294b840d26f8bdabd74f9e32ae148bcdc
 
 name:           diplomska
 version:        0.1.0.0
@@ -51,6 +51,7 @@ library
     , bytestring
     , containers
     , directory
+    , dlist
     , http-media
     , lens
     , lucid
@@ -88,6 +89,7 @@ executable diplomska-exe
     , containers
     , diplomska
     , directory
+    , dlist
     , http-media
     , lens
     , lucid
@@ -126,6 +128,7 @@ test-suite diplomska-test
     , containers
     , diplomska
     , directory
+    , dlist
     , hspec
     , hspec-wai
     , hspec-wai-json

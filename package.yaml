@@ -45,6 +45,7 @@ dependencies:
   - unordered-containers
   - vector
   - transformers
+  - dlist
 
 library:
   source-dirs: src

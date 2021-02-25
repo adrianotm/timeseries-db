@@ -1,22 +1,22 @@
 module Aggregates where
 
 import           Control.Monad.Except
+import qualified Data.DList           as DL
 import           Data.Foldable
-import qualified Data.Sequence        as S
 import           DataS.Map
 import           Repository.Model
 
-newtype Collect n = Collect { getList :: S.Seq n }
+newtype Collect n = Collect { getList :: DL.DList n }
 
 toCollect :: a -> Collect a
-toCollect a = Collect (S.singleton a)
+toCollect a = Collect (DL.singleton a)
 
 instance Semigroup (Collect n) where
-  Collect x <> Collect y = Collect $ x S.>< y
+  Collect x <> Collect y = Collect $ DL.append x y
 
 instance Monoid (Collect n) where
   mappend=(<>)
-  mempty = Collect S.empty
+  mempty = Collect DL.empty
 
 ------
 data Average n = Average { length :: !Int, sum :: !n }
@@ -38,8 +38,8 @@ instance Num n => Monoid (Average n) where
 toAggR :: Value -> QueryR
 toAggR = QR . Right . Right . AggR
 
-toCollR :: S.Seq TS -> QueryR
-toCollR = QR . Left . toList
+toCollR :: DL.DList TS -> QueryR
+toCollR = QR . Left . DL.toList
 
 handleAgg :: Monad m => String -> Maybe Value  -> ExceptT String m QueryR
 handleAgg err = maybe (throwError err) (return . toAggR)

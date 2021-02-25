@@ -9,12 +9,12 @@ import           Control.Monad.Except
 import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except
 import           Data.Acid                  (Query, Update, makeAcidic)
+import           Data.DList                 as DL
 import           Data.Foldable
 import           Data.Functor
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Semigroup
-import           Data.Sequence              as S
 import qualified Data.Vector                as V
 import qualified DataS.Map                  as M
 
@@ -47,4 +47,4 @@ tagQuery = ask
     (Just "min") ->  aggTag getMin (Min . value) >>= handleAgg (noDataErr tagQ)
     (Just "max") ->  aggTag getMax (Max . value) >>= maybe (throwError $ noDataErr tagQ) (return . toAggR)
     (Just _) -> throwE "Illegal aggregation function"
-    Nothing -> aggTag getList toCollect <&> toCollR <$> fromMaybe S.empty
+    Nothing -> aggTag getList toCollect <&> toCollR <$> fromMaybe DL.empty
