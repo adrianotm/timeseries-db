@@ -10,8 +10,11 @@ import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.State        (MonadState, evalState, get, put)
 import           Control.Monad.Trans.Except
 import           Data.Acid                  (Query, Update, makeAcidic)
+import           Data.Bool
+import           Data.Either
 import           Data.Foldable
 import           Data.Functor
+import           Data.Maybe
 import           Data.Monoid
 import           Data.Semigroup
 import qualified Data.Sequence              as S
@@ -25,6 +28,7 @@ import           Repository.Model
 data TSQuery = TSQuery { tagQ        :: Maybe Tag
                        , aggQ        :: Maybe Agg
                        , tsQ         :: Maybe Timestamp
+                       , groupQ      :: Group
                        , transformIM :: IM.IntMap TagMap -> IM.IntMap TagMap
                        , qm          :: QueryModel
                        , tdb         :: TimeseriesDB
@@ -32,37 +36,68 @@ data TSQuery = TSQuery { tagQ        :: Maybe Tag
 
 type ExceptTSQuery = ExceptT String (Reader TSQuery)
 
-aggTS' :: Monoid m =>
+simpleAgg :: Monoid m =>
            (m -> a)
         -> (TS -> m)
         -> Maybe Tag
         -> (IM.IntMap TagMap -> IM.IntMap TagMap)
         -> TimeseriesDB
         -> a
-aggTS' get to tg f TimeseriesDB{..} = get $ foldMap' (mapToM to tg data') (f tIx)
+simpleAgg get to tg f TimeseriesDB{..} = get $ foldMap' (mapToM to tg data') (f tIx)
 
-aggTS :: Monoid m =>
-        (m -> a)
-        -> (TS -> m)
-        -> ExceptTSQuery a
-aggTS get to = ask >>= \TSQuery{..} -> case tsQ of
-                                         Nothing -> return $ aggTS' get to tagQ transformIM tdb
-                                         (Just ts) -> maybe (throwE "Timestamp not found")
-                                                      return
-                                                      (IM.lookup ts (tIx tdb) <&> get . mapToM to tagQ (data' tdb))
-
-mapToM :: Monoid m => (TS -> m) -> Maybe Tag -> V.Vector TS -> M.Map Tag Ix -> m
-mapToM toM Nothing d m   = foldMap' (toM . (V.!) d) m
+mapToM :: (Monoid m) =>
+  (TS -> m)
+  -> Maybe Tag
+  -> V.Vector TS
+  -> M.Map Tag Ix
+  -> m
+mapToM toM Nothing d m   = M.foldMapWithKey' (\k v -> toM $ (V.!) d v) m
 mapToM toM (Just tg) d m = maybe mempty (toM . (V.!) d) (M.lookup tg m)
+
+mapToMG :: (Monoid v) =>
+  (TS -> v)
+  -> V.Vector TS
+  -> M.Map Tag Ix
+  -> GroupTag Tag v
+mapToMG toM d = M.foldMapWithKey' (\k v -> GroupTag $ M.singleton k (toM (d V.! v)))
+
+aggTS' :: (Monoid v) =>
+           (v -> a)
+        -> (TS -> v)
+        -> ExceptTSQuery (Either a (M.Map Tag v))
+aggTS' get to = ask <&> \TSQuery{..}
+                          -> if groupQ then Right $ getGroup $ foldMap' (mapToMG to (data' tdb)) (transformIM $ tIx tdb)
+                                       else Left $ simpleAgg get to tagQ transformIM tdb
+
+aggTS :: (Monoid v) =>
+        (v -> a)
+        -> (TS -> v)
+        -> ExceptTSQuery (Either a (M.Map Tag v))
+aggTS get to = ask >>= \TSQuery{..}
+                        -> case tsQ of
+                             Nothing -> aggTS' get to
+                             (Just ts) -> maybe (throwE "Timestamp not found")
+                                          return
+                                          (IM.lookup ts (tIx tdb) <&>
+                                            \m -> bool
+                                                    (Left $ get $ mapToM to tagQ (data' tdb) m)
+                                                    (Right $ getGroup $ mapToMG to (data' tdb) m)
+                                                  groupQ
+                                          )
 
 tsQuery :: ExceptTSQuery QueryR
 tsQuery = ask
             >>= \TSQuery{..}
               -> case aggQ of
-                (Just "avg") -> catchE (aggTS getAverage (toAvg . value) >>= handleAgg "Average failed") throwE
-                (Just "sum") -> (<&> toAggR) $ aggTS getSum (Sum . value)
-                (Just "count") -> (<&> toAggR) $ aggTS getSum (const $ Sum 1)
-                (Just "min") -> (<&> toAggR) $ aggTS getMin (Min . value)
-                (Just "max") -> (<&> toAggR) $ aggTS getMax (Max . value)
-                (Just _) -> throwE "Illegal aggregation function"
-                Nothing -> (<&> toCollR) $ aggTS getList toCollect
+      (Just "avg") -> catchE (aggTS getAverage (toAvg . value) >>=
+                                either
+                                  (handleAgg "Average failed")
+                                  (return . toAggRG (fromMaybe 0 . getAverage))
+                             )
+                      throwE
+      (Just "sum") -> aggTS getSum (Sum . value) <&> either toAggR (toAggRG getSum)
+      (Just "count") ->  aggTS getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
+      (Just "min") ->  aggTS getMin (Min . value) <&> either toAggR (toAggRG getMin)
+      (Just "max") ->  aggTS getMax (Max . value) <&> either toAggR (toAggRG getMax)
+      (Just a) -> throwE "Illegal aggregation function"
+      Nothing ->  return $ toCollR $ simpleAgg getList toCollect tagQ transformIM tdb

@@ -13,7 +13,7 @@ import           Control.Monad.Except (ExceptT)
 import           Data.Acid            (Query, Update, makeAcidic)
 import           Data.Aeson           (FromJSON, Object, ToJSON, object, pairs,
                                        parseJSON, toEncoding, toJSON,
-                                       withObject, (.:), (.:?), (.=))
+                                       withObject, (.!=), (.:), (.:?), (.=))
 import           Data.SafeCopy        (base, deriveSafeCopy)
 import qualified Data.Sequence        as S
 import qualified Data.Vector          as V
@@ -26,6 +26,7 @@ type Tag = Either String Int
 type Value = Float
 type Ix = Int
 type Agg = String
+type Group = Bool
 
 instance Bounded Float where
     { minBound = -1/0; maxBound = 1/0 }
@@ -37,12 +38,15 @@ type CollectR = [TS]
 newtype AggR = AggR { result :: Value }
                 deriving(Show, Generic, ToJSON, FromJSON)
 
-newtype QueryR = QR (Either CollectR AggR)
+data GroupAggR = GroupAggR { _tag :: Tag, _result :: Value}
+                deriving(Show, Generic, FromJSON)
+
+newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
 instance ToJSON QueryR where
-    toJSON (QR qr) = either toJSON toJSON qr
-    toEncoding (QR qr) = either toEncoding toEncoding qr
+    toJSON (QR qr) = either toJSON (either toJSON toJSON) qr
+    toEncoding (QR qr) = either toEncoding (either toEncoding toEncoding) qr
 
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Value }
     deriving (Show,Generic)
@@ -65,6 +69,16 @@ instance ToJSON TS where
     toEncoding (TS ts (Left tg) v) =
         pairs ("timestamp" .= ts <> "tag" .= tg <> "value" .= v)
 
+instance ToJSON GroupAggR where
+    toJSON (GroupAggR (Left tg) res) =
+        object ["tag" .= tg, "result" .= res]
+    toJSON (GroupAggR (Right tg) res) =
+        object ["tag" .= tg, "result" .= res]
+    toEncoding (GroupAggR (Left tg) res) =
+        pairs ("tag" .= tg <> "result" .= res)
+    toEncoding (GroupAggR (Right tg) res) =
+        pairs ("tag" .= tg <> "result" .= res)
+
 type TagMap = M.Map Tag Ix
 
 data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
@@ -78,6 +92,7 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , tsEq    :: Maybe Timestamp
                     , tagEq   :: Maybe Tag
                     , aggFunc :: Maybe Agg
+                    , group   :: Group
                     }
         deriving (Generic, ToJSON)
 
@@ -92,14 +107,15 @@ instance FromJSON QueryModel where
             <|> (fmap Right <$> v .:? "tagEq")
             )
         <*> v .:? "aggFunc"
+        <*> v .:? "group" .!= False
 
 emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
-emptyQM _                                                           = False
+emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing _) = True
+emptyQM _                                                             = False
 
 justTag :: QueryModel -> Maybe Tag
-justTag (Q Nothing Nothing Nothing Nothing Nothing a _) = a
-justTag _                                               = Nothing
+justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
+justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> Bool
 illegalQM Q {gt = (Just _), ge = (Just _)}   = True
@@ -111,6 +127,7 @@ illegalQM Q {tsEq = (Just _), le = (Just _)} = True
 illegalQM _                                  = False
 
 deriveSafeCopy 0 'base ''AggR
+deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''QueryModel

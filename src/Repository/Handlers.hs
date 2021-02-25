@@ -19,11 +19,14 @@ import qualified Data.Sequence          as S
 import qualified Data.Vector            as V
 import qualified DataS.IntMap           as IM
 import qualified DataS.Map              as M
+import           Debug.Trace
 
 import           Aggregates
 import           Repository.Model
 import           Repository.Queries.Tag
 import           Repository.Queries.TS
+
+debug = flip trace
 
 qmToF :: QueryModel -> (IM.IntMap TagMap -> IM.IntMap TagMap)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.lookupGLT' False False gt lt
@@ -48,12 +51,12 @@ insertTS ts = do db@TimeseriesDB{..} <- get
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either String QueryR)
 filterTS qm@Q{..} = ask <&> \db -> maybe
-                                  (runReader (runExceptT tsQuery) $ TSQuery tagEq aggFunc tsEq (qmToF qm) qm db)
+                                  (runReader (runExceptT tsQuery) $ TSQuery tagEq aggFunc tsEq group (qmToF qm) qm db)
                                   (runReader (runExceptT tagQuery) . TagQ aggFunc db)
                                   (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]
-getAllTS = ask <&> aggTS' getList toCollect Nothing id
+getAllTS = ask <&> simpleAgg getList toCollect Nothing id
 
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty

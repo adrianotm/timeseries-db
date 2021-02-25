@@ -2,6 +2,7 @@ module Aggregates where
 
 import           Control.Monad.Except
 import           Data.Foldable
+import           DataS.Map
 import           Repository.Model
 
 newtype Collect n = Collect { getList :: [n] }
@@ -34,10 +35,25 @@ instance Num n => Monoid (Average n) where
   mempty = Average 0 0
 
 toAggR :: Value -> QueryR
-toAggR = QR . Right . AggR
+toAggR = QR . Right . Right . AggR
 
 toCollR :: [TS] -> QueryR
 toCollR = QR . Left
 
 handleAgg :: Monad m => String -> Maybe Value  -> ExceptT String m QueryR
 handleAgg err = maybe (throwError err) (return . toAggR)
+
+newtype GroupTag k v = GroupTag { getGroup :: Map k v }
+
+instance (Semigroup v, Ord k) => Semigroup (GroupTag k v) where
+  GroupTag x <> GroupTag y = GroupTag $ unionWith (<>) x y
+
+instance (Semigroup v, Ord k) => Monoid (GroupTag k v) where
+  mempty = GroupTag empty
+  mappend = (<>)
+
+mapToGroupAgg :: Semigroup v => (v -> Value) -> Map Tag v -> [GroupAggR]
+mapToGroupAgg f = foldrWithKey' (\k v -> (:) (GroupAggR k $ f v)) []
+
+toAggRG :: Semigroup v => (v -> Value) -> Map Tag v -> QueryR
+toAggRG f = QR . Right . Left . foldrWithKey' (\k v -> (:) (GroupAggR k $ f v)) []

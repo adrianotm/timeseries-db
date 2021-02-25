@@ -40,10 +40,10 @@ tagQuery :: ExceptTagQuery QueryR
 tagQuery = ask
             >>= \TagQ{..}
               -> case aggQ of
-                (Just "avg") ->  aggTag getAverage (toAvg . value) >>= handleAgg "Average failed" . join
-                (Just "sum") ->  aggTag getSum (Sum . value) >>= handleAgg (noDataErr tagQ)
-                (Just "count") ->  aggTag getSum (const $ Sum 1) >>= maybe (return $ toAggR 0) (return . toAggR)
-                (Just "min") ->  aggTag getMin (Min . value) >>= handleAgg (noDataErr tagQ)
-                (Just "max") ->  aggTag getMax (Max . value) >>= maybe (throwError $ noDataErr tagQ) (return . toAggR)
-                (Just _) -> throwE "Illegal aggregation function"
-                Nothing -> aggTag getList toCollect <&> toCollR <$> fromMaybe []
+    (Just "avg") ->  aggTag getAverage (toAvg . value) >>= handleAgg "Average failed" . join
+    (Just "sum") ->  aggTag getSum (Sum . value) >>= handleAgg (noDataErr tagQ)
+    (Just "count") ->  aggTag getSum (const $ Sum 1) >>= maybe (return $ toAggR 0) (return . toAggR)
+    (Just "min") ->  aggTag getMin (Min . value) >>= handleAgg (noDataErr tagQ)
+    (Just "max") ->  aggTag getMax (Max . value) >>= maybe (throwError $ noDataErr tagQ) (return . toAggR)
+    (Just _) -> throwE "Illegal aggregation function"
+    Nothing -> aggTag getList toCollect <&> toCollR <$> fromMaybe []

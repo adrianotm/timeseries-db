@@ -1,6 +1,10 @@
 module DataS.Map
    ( module DataS.Map
    , M.Map
+   , M.unionWith
+   , M.foldlWithKey'
+   , M.foldrWithKey'
+   , M.singleton
    , M.empty
    , M.foldl
    , M.lookup
@@ -19,3 +23,6 @@ insertWithIx s m = do ix <- get
 
 foldIx :: Ord a => [b] -> (b -> a) -> SeqMap a -> State Int (SeqMap a)
 foldIx ls f m = foldM (\acc b -> let s = f b in insertWithIx s acc) m ls
+
+foldMapWithKey' :: Monoid m => (k -> a -> m) -> Map k a -> m
+foldMapWithKey' f = M.foldlWithKey' (\acc k v -> acc <> f k v) mempty
