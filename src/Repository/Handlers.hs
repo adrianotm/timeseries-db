@@ -56,7 +56,7 @@ filterTS qm@Q{..} = ask <&> \db -> maybe
                                   (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]
-getAllTS = ask <&> simpleAgg getList toCollect Nothing id
+getAllTS = ask <&> toList . simpleAgg getList toCollect Nothing id
 
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty
