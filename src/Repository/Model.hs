@@ -118,16 +118,17 @@ justTag :: QueryModel -> Maybe Tag
 justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
 justTag _                                                 = Nothing
 
-illegalQM :: QueryModel -> Bool
-illegalQM Q {gt = (Just _), ge = (Just _)}    = True
-illegalQM Q {lt = (Just _), le = (Just _)}    = True
-illegalQM Q {tsEq = (Just _), gt = (Just _)}  = True
-illegalQM Q {tsEq = (Just _), ge = (Just _)}  = True
-illegalQM Q {tsEq = (Just _), lt = (Just _)}  = True
-illegalQM Q {tsEq = (Just _), le = (Just _)}  = True
-illegalQM Q {group = True, aggFunc = Nothing} = True
-illegalQM Q {group = True, tagEq = (Just _)}  = True
-illegalQM _                                   = False
+illegalQM :: QueryModel -> (Bool, String)
+illegalQM Q {gt = (Just _), ge = (Just _)}    = (True, "Can't query 'gt' and 'ge' at the same time.")
+illegalQM Q {lt = (Just _), le = (Just _)}    = (True, "Can't query 'lt' and 'le' at the same time.")
+illegalQM Q {tsEq = (Just _), gt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
+illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
+illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
+illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
+illegalQM Q {group = True, aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
+illegalQM Q {group = True, tagEq = (Just _)}  = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'")
+illegalQM Q {group = True, tsEq = (Just _)}   = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'")
+illegalQM _                                   = (False, "")
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''GroupAggR
