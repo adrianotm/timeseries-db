@@ -14,6 +14,7 @@ import           Data.Acid            (Query, Update, makeAcidic)
 import           Data.Aeson           (FromJSON, Object, ToJSON, object, pairs,
                                        parseJSON, toEncoding, toJSON,
                                        withObject, (.!=), (.:), (.:?), (.=))
+import           Data.Maybe           (isJust)
 import           Data.SafeCopy        (base, deriveSafeCopy)
 import qualified Data.Sequence        as S
 import qualified Data.Vector          as V
@@ -118,13 +119,15 @@ justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
 justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> Bool
-illegalQM Q {gt = (Just _), ge = (Just _)}   = True
-illegalQM Q {lt = (Just _), le = (Just _)}   = True
-illegalQM Q {tsEq = (Just _), gt = (Just _)} = True
-illegalQM Q {tsEq = (Just _), ge = (Just _)} = True
-illegalQM Q {tsEq = (Just _), lt = (Just _)} = True
-illegalQM Q {tsEq = (Just _), le = (Just _)} = True
-illegalQM _                                  = False
+illegalQM Q {gt = (Just _), ge = (Just _)}    = True
+illegalQM Q {lt = (Just _), le = (Just _)}    = True
+illegalQM Q {tsEq = (Just _), gt = (Just _)}  = True
+illegalQM Q {tsEq = (Just _), ge = (Just _)}  = True
+illegalQM Q {tsEq = (Just _), lt = (Just _)}  = True
+illegalQM Q {tsEq = (Just _), le = (Just _)}  = True
+illegalQM Q {group = True, aggFunc = Nothing} = True
+illegalQM Q {group = True, tagEq = (Just _)}  = True
+illegalQM _                                   = False
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''GroupAggR
