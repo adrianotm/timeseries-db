@@ -36,6 +36,8 @@ data TSQuery = TSQuery { tagQ        :: Maybe Tag
 
 type GroupEither v = Either (M.Map Tag v) (M.Map Timestamp v)
 
+type AggRes a v = Either a (GroupEither v)
+
 type ExceptTSQuery = ExceptT String (Reader TSQuery)
 
 simpleAgg :: Monoid m =>
@@ -66,7 +68,7 @@ mapToMG toM d = M.foldMapWithKey' (\k v -> GroupTag $ M.singleton k (toM (d V.! 
 aggTS' :: (Monoid v) =>
            (v -> a)
         -> (TS -> v)
-        -> ExceptTSQuery (Either a (GroupEither v))
+        -> ExceptTSQuery (AggRes a v)
 aggTS' get to = ask
                   >>= \TSQuery{..}
                       -> case groupQ of
@@ -78,7 +80,7 @@ aggTS' get to = ask
 aggTS :: (Monoid v) =>
         (v -> a)
         -> (TS -> v)
-        -> ExceptTSQuery (Either a (GroupEither v))
+        -> ExceptTSQuery (AggRes a v)
 aggTS get to = ask >>= \TSQuery{..}
                          -> case tsQ of
                              Nothing -> aggTS' get to
