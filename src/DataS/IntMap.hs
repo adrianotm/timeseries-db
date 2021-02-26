@@ -63,3 +63,6 @@ insertWithIx k s im = do ix <- get
 
 foldIx :: Ord a => [b] -> (b -> (Key, a)) -> IM.IntMap (M.Map a Int) -> State Int (IM.IntMap (M.Map a Int))
 foldIx ls f im = foldM (\acc b -> let (key, s) = f b in insertWithIx key s acc) im ls
+
+foldMapWithKey' :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
+foldMapWithKey' f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty

@@ -28,7 +28,7 @@ type Tag = Either String Int
 type Val = Float
 type Ix = Int
 
-type Group = Bool
+data GroupBy = GByTimestemp | GByTag | IllegalGBy
 
 data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg | IllegalAgg
         deriving (Show, Generic)
@@ -62,7 +62,7 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , tsEq    :: Maybe Timestamp
                     , tagEq   :: Maybe Tag
                     , aggFunc :: Maybe Agg
-                    , group   :: Group
+                    , group   :: Maybe GroupBy
                     }
         deriving (Generic)
 
@@ -73,6 +73,11 @@ instance Bounded Float where
 instance ToJSON QueryR where
     toJSON (QR qr) = either toJSON (either toJSON toJSON) qr
     toEncoding (QR qr) = either toEncoding (either toEncoding toEncoding) qr
+
+instance FromJSON GroupBy where
+    parseJSON (String "timestamp") = return GByTimestemp
+    parseJSON (String "tag")       = return GByTag
+    parseJSON _                    = return IllegalGBy
 
 instance FromJSON Agg where
     parseJSON (String "avg")   = return AvgAgg
@@ -125,27 +130,27 @@ instance FromJSON QueryModel where
             <|> (fmap Right <$> v .:? "tagEq")
             )
         <*> v .:? "aggFunc"
-        <*> v .:? "group" .!= False
+        <*> v .:? "groupBy"
 
 emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing False) = True
-emptyQM _                                                             = False
+emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
+emptyQM _                                                                 = False
 
 justTag :: QueryModel -> Maybe Tag
 justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
 justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> (Bool, String)
-illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing True) = (True, "Only 'group' provided.")
+illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
 illegalQM Q {gt = (Just _), ge = (Just _)}    = (True, "Can't query 'gt' and 'ge' at the same time.")
 illegalQM Q {lt = (Just _), le = (Just _)}    = (True, "Can't query 'lt' and 'le' at the same time.")
 illegalQM Q {tsEq = (Just _), gt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {group = True, aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
-illegalQM Q {group = True, tagEq = (Just _)}  = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'")
-illegalQM Q {group = True, tsEq = (Just _)}   = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'")
+illegalQM Q {group = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
+illegalQM Q {group = (Just _), tagEq = (Just _)}  = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'.")
+illegalQM Q {group = (Just _), tsEq = (Just _)}   = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tsEq' is the same as only tsEq'.")
 illegalQM _                                   = (False, "")
 
 deriveSafeCopy 0 'base ''AggR
@@ -153,5 +158,6 @@ deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''Agg
+deriveSafeCopy 0 'base ''GroupBy
 deriveSafeCopy 0 'base ''QueryModel
 deriveSafeCopy 0 'base ''TimeseriesDB

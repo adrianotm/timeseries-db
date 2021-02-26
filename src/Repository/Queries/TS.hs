@@ -28,11 +28,13 @@ import           Repository.Model
 data TSQuery = TSQuery { tagQ        :: Maybe Tag
                        , aggQ        :: Maybe Agg
                        , tsQ         :: Maybe Timestamp
-                       , groupQ      :: Group
+                       , groupQ      :: Maybe GroupBy
                        , transformIM :: IM.IntMap TagMap -> IM.IntMap TagMap
                        , qm          :: QueryModel
                        , tdb         :: TimeseriesDB
                        }
+
+type GroupEither v = Either (M.Map Tag v) (M.Map Timestamp v)
 
 type ExceptTSQuery = ExceptT String (Reader TSQuery)
 
@@ -64,26 +66,31 @@ mapToMG toM d = M.foldMapWithKey' (\k v -> GroupTag $ M.singleton k (toM (d V.! 
 aggTS' :: (Monoid v) =>
            (v -> a)
         -> (TS -> v)
-        -> ExceptTSQuery (Either a (M.Map Tag v))
-aggTS' get to = ask <&> \TSQuery{..}
-                          -> if groupQ then Right $ getGroup $ foldMap' (mapToMG to (data' tdb)) (transformIM $ tIx tdb)
-                                       else Left $ simpleAgg get to tagQ transformIM tdb
+        -> ExceptTSQuery (Either a (GroupEither v))
+aggTS' get to = ask
+                  >>= \TSQuery{..}
+                      -> case groupQ of
+                          (Just GByTag) -> return $ Right $ Left $ getGroup $ foldMap' (mapToMG to (data' tdb)) (transformIM $ tIx tdb)
+                          (Just GByTimestemp) -> return $ Right $ Right $ getGroup $ IM.foldMapWithKey' (\k m -> GroupTag $ M.singleton k $ mapToM to tagQ (data' tdb) m) (transformIM $ tIx tdb)
+                          Nothing -> return $ Left $ simpleAgg get to tagQ transformIM tdb
+                          _ -> throwE "Illegal 'groupBy' field."
 
 aggTS :: (Monoid v) =>
         (v -> a)
         -> (TS -> v)
-        -> ExceptTSQuery (Either a (M.Map Tag v))
+        -> ExceptTSQuery (Either a (GroupEither v))
 aggTS get to = ask >>= \TSQuery{..}
-                        -> case tsQ of
+                         -> case tsQ of
                              Nothing -> aggTS' get to
-                             (Just ts) -> maybe (throwE "Timestamp not found")
-                                          return
-                                          (IM.lookup ts (tIx tdb) <&>
-                                            \m -> bool
-                                                    (Left $ get $ mapToM to tagQ (data' tdb) m)
-                                                    (Right $ getGroup $ mapToMG to (data' tdb) m)
-                                                  groupQ
-                                          )
+                             (Just ts)
+                                -> case IM.lookup ts (tIx tdb) of
+                                      (Just m)
+                                         -> case groupQ of
+                                              (Just GByTag) -> return $ Left $ get $ mapToM to tagQ (data' tdb) m
+                                              (Just GByTimestemp) -> throwE "Can't use 'groupBy' with 'tsEq'."
+                                              Nothing -> return $ Right $ Left $ getGroup $ mapToMG to (data' tdb) m
+                                              _ -> throwE "Illegal 'groupBy' field."
+                                      Nothing -> throwE "Timestamp not found"
 
 tsQuery :: ExceptTSQuery QueryR
 tsQuery = ask
@@ -93,8 +100,8 @@ tsQuery = ask
                                 either
                                   (handleAgg "Average failed")
                                   (return . toAggRG (fromMaybe 0 . getAverage))
-                             )
-                      throwE
+                              )
+                       throwE
       (Just SumAgg) -> aggTS getSum (Sum . value) <&> either toAggR (toAggRG getSum)
       (Just CountAgg) ->  aggTS getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
       (Just MinAgg) ->  aggTS getMin (Min . value) <&> either toAggR (toAggRG getMin)

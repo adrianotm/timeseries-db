@@ -8,7 +8,7 @@ import           Repository.Model
 
 generateTS :: IO [TS]
 generateTS = do now <- getPOSIXTime
-                return [TS (round (now + fromIntegral i)) (Left "cba") 20 | i <- [0..10000]]
+                return [TS (round (1614019694 + fromIntegral i)) (Left "cba") 20 | i <- [0..10000]]
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS
