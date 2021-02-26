@@ -29,6 +29,7 @@ type Val = Float
 type Ix = Int
 
 data GroupBy = GByTimestemp | GByTag | IllegalGBy
+    deriving (Show)
 
 data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg | IllegalAgg
         deriving (Show, Generic)
@@ -64,7 +65,7 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , aggFunc :: Maybe Agg
                     , group   :: Maybe GroupBy
                     }
-        deriving (Generic)
+        deriving (Generic, Show)
 
 
 instance Bounded Float where

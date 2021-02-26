@@ -11,6 +11,7 @@ import           Control.Monad.State        (MonadState, evalState, get, put)
 import           Control.Monad.Trans.Except
 import           Data.Acid                  (Query, Update, makeAcidic)
 import           Data.Bool
+import           Data.DList                 as DL
 import           Data.Either
 import           Data.Foldable
 import           Data.Functor
@@ -116,4 +117,4 @@ tsQuery = ask
       (Just MinAgg) ->  aggTS getMin (Min . value) <&> either toAggR (toAggRG getMin)
       (Just MaxAgg) ->  aggTS getMax (Max . value) <&> either toAggR (toAggRG getMax)
       (Just IllegalAgg) -> throwE "Illegal aggregation function"
-      Nothing ->  return $ toCollR $ simpleAgg getList toCollect tagQ transformIM tdb
+      Nothing ->   aggTS getList toCollect <&> toCollR . fromLeft DL.empty

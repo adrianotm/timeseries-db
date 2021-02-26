@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
-{-# LANGUAGE BlockArguments        #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
