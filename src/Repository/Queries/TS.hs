@@ -89,15 +89,15 @@ tsQuery :: ExceptTSQuery QueryR
 tsQuery = ask
             >>= \TSQuery{..}
               -> case aggQ of
-      (Just "avg") -> catchE (aggTS getAverage (toAvg . value) >>=
+      (Just AvgAgg) -> catchE (aggTS getAverage (toAvg . value) >>=
                                 either
                                   (handleAgg "Average failed")
                                   (return . toAggRG (fromMaybe 0 . getAverage))
                              )
                       throwE
-      (Just "sum") -> aggTS getSum (Sum . value) <&> either toAggR (toAggRG getSum)
-      (Just "count") ->  aggTS getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
-      (Just "min") ->  aggTS getMin (Min . value) <&> either toAggR (toAggRG getMin)
-      (Just "max") ->  aggTS getMax (Max . value) <&> either toAggR (toAggRG getMax)
-      (Just a) -> throwE "Illegal aggregation function"
+      (Just SumAgg) -> aggTS getSum (Sum . value) <&> either toAggR (toAggRG getSum)
+      (Just CountAgg) ->  aggTS getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
+      (Just MinAgg) ->  aggTS getMin (Min . value) <&> either toAggR (toAggRG getMin)
+      (Just MaxAgg) ->  aggTS getMax (Max . value) <&> either toAggR (toAggRG getMax)
+      (Just IllegalAgg) -> throwE "Illegal aggregation function"
       Nothing ->  return $ toCollR $ simpleAgg getList toCollect tagQ transformIM tdb

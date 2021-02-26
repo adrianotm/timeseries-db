@@ -35,13 +35,13 @@ instance Num n => Monoid (Average n) where
   mappend = (<>)
   mempty = Average 0 0
 
-toAggR :: Value -> QueryR
+toAggR :: Val -> QueryR
 toAggR = QR . Right . Right . AggR
 
 toCollR :: DL.DList TS -> QueryR
 toCollR = QR . Left . DL.toList
 
-handleAgg :: Monad m => String -> Maybe Value  -> ExceptT String m QueryR
+handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
 handleAgg err = maybe (throwError err) (return . toAggR)
 
 newtype GroupTag k v = GroupTag { getGroup :: Map k v }
@@ -53,8 +53,8 @@ instance (Semigroup v, Ord k) => Monoid (GroupTag k v) where
   mempty = GroupTag empty
   mappend = (<>)
 
-mapToGroupAgg :: Semigroup v => (v -> Value) -> Map Tag v -> [GroupAggR]
-mapToGroupAgg f = foldrWithKey' (\k v -> (:) (GroupAggR k $ f v)) []
+mapToGroupAgg :: Semigroup v => (v -> Val) -> Map Tag v -> [GroupAggR]
+mapToGroupAgg f = foldrWithKey' (\k v -> (:) (GroupAggR (Left k) $ f v)) []
 
-toAggRG :: Semigroup v => (v -> Value) -> Map Tag v -> QueryR
-toAggRG f = QR . Right . Left . foldrWithKey' (\k v -> (:) (GroupAggR k $ f v)) []
+toAggRG :: Semigroup v => (v -> Val) -> Map Tag v -> QueryR
+toAggRG f = QR . Right . Left . foldrWithKey' (\k v -> (:) (GroupAggR (Left k) $ f v)) []

@@ -11,9 +11,10 @@ module Repository.Model where
 import           Control.Applicative  ((<|>))
 import           Control.Monad.Except (ExceptT)
 import           Data.Acid            (Query, Update, makeAcidic)
-import           Data.Aeson           (FromJSON, Object, ToJSON, object, pairs,
-                                       parseJSON, toEncoding, toJSON,
-                                       withObject, (.!=), (.:), (.:?), (.=))
+import           Data.Aeson           (FromJSON, Object, ToJSON, Value (String),
+                                       object, pairs, parseJSON, toEncoding,
+                                       toJSON, withObject, (.!=), (.:), (.:?),
+                                       (.=))
 import           Data.Maybe           (isJust)
 import           Data.SafeCopy        (base, deriveSafeCopy)
 import qualified Data.Sequence        as S
@@ -24,33 +25,62 @@ import           GHC.Generics         (Generic)
 
 type Timestamp = Int
 type Tag = Either String Int
-type Value = Float
+type Val = Float
 type Ix = Int
-type Agg = String
+
 type Group = Bool
 
-instance Bounded Float where
-    { minBound = -1/0; maxBound = 1/0 }
+data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg | IllegalAgg
+        deriving (Show, Generic)
 
 type ExceptionQuery = ExceptT String (Query TimeseriesDB)
 
 type CollectR = [TS]
 
-newtype AggR = AggR { result :: Value }
+newtype AggR = AggR { result :: Val }
                 deriving(Show, Generic, ToJSON, FromJSON)
 
-data GroupAggR = GroupAggR { _tag :: Tag, _result :: Value}
+data GroupAggR = GroupAggR { _tag :: Either Tag Timestamp, _result :: Val}
                 deriving(Show, Generic, FromJSON)
 
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
+data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
+    deriving (Show,Generic)
+
+type TagMap = M.Map Tag Ix
+
+data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
+                                   sIx   :: M.Map Tag (S.Seq Ix), -- composite tag index
+                                   data' :: V.Vector TS } -- all data
+
+data QueryModel = Q { gt      :: Maybe Timestamp
+                    , lt      :: Maybe Timestamp
+                    , ge      :: Maybe Timestamp
+                    , le      :: Maybe Timestamp
+                    , tsEq    :: Maybe Timestamp
+                    , tagEq   :: Maybe Tag
+                    , aggFunc :: Maybe Agg
+                    , group   :: Group
+                    }
+        deriving (Generic)
+
+
+instance Bounded Float where
+    { minBound = -1/0; maxBound = 1/0 }
+
 instance ToJSON QueryR where
     toJSON (QR qr) = either toJSON (either toJSON toJSON) qr
     toEncoding (QR qr) = either toEncoding (either toEncoding toEncoding) qr
 
-data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Value }
-    deriving (Show,Generic)
+instance FromJSON Agg where
+    parseJSON (String "avg")   = return AvgAgg
+    parseJSON (String "sum")   = return SumAgg
+    parseJSON (String "count") = return CountAgg
+    parseJSON (String "min")   = return MinAgg
+    parseJSON (String "max")   = return MaxAgg
+    parseJSON _                = return IllegalAgg
 
 instance FromJSON TS where
     parseJSON = withObject "TS" $ \v -> TS
@@ -71,31 +101,18 @@ instance ToJSON TS where
         pairs ("timestamp" .= ts <> "tag" .= tg <> "value" .= v)
 
 instance ToJSON GroupAggR where
-    toJSON (GroupAggR (Left tg) res) =
+    toJSON (GroupAggR (Left (Left tg)) res) =
         object ["tag" .= tg, "result" .= res]
-    toJSON (GroupAggR (Right tg) res) =
+    toJSON (GroupAggR (Left (Right tg)) res) =
         object ["tag" .= tg, "result" .= res]
-    toEncoding (GroupAggR (Left tg) res) =
+    toJSON (GroupAggR (Right ts) res) =
+        object ["timestamp" .= ts, "result" .= res]
+    toEncoding (GroupAggR (Left (Left tg)) res) =
         pairs ("tag" .= tg <> "result" .= res)
-    toEncoding (GroupAggR (Right tg) res) =
+    toEncoding (GroupAggR (Left (Right tg)) res) =
         pairs ("tag" .= tg <> "result" .= res)
-
-type TagMap = M.Map Tag Ix
-
-data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
-                                   sIx   :: M.Map Tag (S.Seq Ix), -- composite tag index
-                                   data' :: V.Vector TS } -- all data
-
-data QueryModel = Q { gt      :: Maybe Timestamp
-                    , lt      :: Maybe Timestamp
-                    , ge      :: Maybe Timestamp
-                    , le      :: Maybe Timestamp
-                    , tsEq    :: Maybe Timestamp
-                    , tagEq   :: Maybe Tag
-                    , aggFunc :: Maybe Agg
-                    , group   :: Group
-                    }
-        deriving (Generic, ToJSON)
+    toEncoding (GroupAggR (Right ts) res) =
+        pairs ("timestamp" .= ts <> "result" .= res)
 
 instance FromJSON QueryModel where
     parseJSON = withObject "QueryModel" $ \v -> Q
@@ -111,7 +128,7 @@ instance FromJSON QueryModel where
         <*> v .:? "group" .!= False
 
 emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing _) = True
+emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing False) = True
 emptyQM _                                                             = False
 
 justTag :: QueryModel -> Maybe Tag
@@ -119,6 +136,7 @@ justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
 justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> (Bool, String)
+illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing True) = (True, "Only 'group' provided.")
 illegalQM Q {gt = (Just _), ge = (Just _)}    = (True, "Can't query 'gt' and 'ge' at the same time.")
 illegalQM Q {lt = (Just _), le = (Just _)}    = (True, "Can't query 'lt' and 'le' at the same time.")
 illegalQM Q {tsEq = (Just _), gt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
@@ -134,5 +152,6 @@ deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''TS
+deriveSafeCopy 0 'base ''Agg
 deriveSafeCopy 0 'base ''QueryModel
 deriveSafeCopy 0 'base ''TimeseriesDB
