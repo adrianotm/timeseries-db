@@ -65,15 +65,15 @@ mapToM :: (Monoid m) =>
   -> V.Vector TS
   -> M.Map Tag Ix
   -> m
-mapToM toM Nothing d m   = M.foldMapWithKey' (\k v -> toM $ (V.!) d v) m
+mapToM toM Nothing d m   = foldMap' (toM . (V.!) d) m
 mapToM toM (Just tg) d m = maybe mempty (toM . (V.!) d) (M.lookup tg m)
 
 mapToMG :: (Monoid v) =>
   (TS -> v)
   -> V.Vector TS
   -> M.Map Tag Ix
-  -> GroupTag Tag v
-mapToMG toM d = M.foldMapWithKey' (\k v -> GroupTag $ M.singleton k (toM (d V.! v)))
+  -> Group Tag v
+mapToMG toM d = M.foldMapWithKey' (\k -> toGroup k . toM . (V.!) d)
 
 aggTS' :: (Monoid v) =>
            (v -> a)
@@ -83,7 +83,7 @@ aggTS' get to = ask
                   >>= \TSQuery{..}
                       -> case groupQ of
                           (Just GByTag) -> return $ toTagAggR $ getGroup $ foldMap' (mapToMG to (data' tdb)) (transformIM $ tIx tdb)
-                          (Just GByTimestemp) -> return $ toTSAggR $ getGroup $ IM.foldMapWithKey' (\k m -> GroupTag $ M.singleton k $ mapToM to tagQ (data' tdb) m) (transformIM $ tIx tdb)
+                          (Just GByTimestemp) -> return $ toTSAggR $ getGroup $ IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagQ (data' tdb)) (transformIM $ tIx tdb)
                           (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
                           Nothing -> return $ toCollAggR $ simpleAgg get to tagQ transformIM tdb
 
@@ -98,8 +98,10 @@ aggTS get to = ask >>= \TSQuery{..}
                                 -> case IM.lookup ts (tIx tdb) of
                                       (Just m)
                                          -> case groupQ of
+                                              (Just GByTimestemp) -> return $ toTSAggR $ getGroup $ mapToM (toGroup ts . to) Nothing (data' tdb) m
+                                              (Just GByTag) -> throwE "Can't use 'groupBy' with 'tagEq'."
+                                              (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
                                               Nothing -> return $ toCollAggR $ get $ mapToM to tagQ (data' tdb) m
-                                              _ -> throwE "Can't use 'groupBy' with 'tsEq'."
                                       Nothing -> throwE "Timestamp not found"
 
 tsQuery :: ExceptTSQuery QueryR

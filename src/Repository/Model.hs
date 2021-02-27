@@ -150,8 +150,8 @@ illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with 
 illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {group = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
-illegalQM Q {group = (Just _), tagEq = (Just _)}  = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tagEq' is the same as only 'tagEq'.")
-illegalQM Q {group = (Just _), tsEq = (Just _)}   = (True, "The composition of 'timestamp' and 'tag' is unique, so grouping with 'tsEq' is the same as only tsEq'.")
+illegalQM Q {group = (Just GByTimestemp), tagEq = (Just _)}  = (True, "Invalid query. Can't use 'tagEq' with 'groupBy = timestamp'.")
+illegalQM Q {group = (Just GByTag), tsEq = (Just _)}   = (True, "Invalid query. Can't use 'tsEq' with 'groupBy = tag.")
 illegalQM _                                   = (False, "")
 
 deriveSafeCopy 0 'base ''AggR

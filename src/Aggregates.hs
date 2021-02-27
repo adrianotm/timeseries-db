@@ -44,14 +44,17 @@ toCollR = QR . Left . DL.toList
 handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
 handleAgg err = maybe (throwError err) (return . toAggR)
 
-newtype GroupTag k v = GroupTag { getGroup :: Map k v }
+newtype Group k v = Group { getGroup :: Map k v }
 
-instance (Semigroup v, Ord k) => Semigroup (GroupTag k v) where
-  GroupTag x <> GroupTag y = GroupTag $ unionWith (<>) x y
+instance (Semigroup v, Ord k) => Semigroup (Group k v) where
+  Group x <> Group y = Group $ unionWith (<>) x y
 
-instance (Semigroup v, Ord k) => Monoid (GroupTag k v) where
-  mempty = GroupTag empty
+instance (Semigroup v, Ord k) => Monoid (Group k v) where
+  mempty = Group empty
   mappend = (<>)
+
+toGroup :: k -> v -> Group k v
+toGroup k v = Group $ singleton k v
 
 mapToGroupAgg :: Semigroup v => (v -> Val) -> Map Tag v -> [GroupAggR]
 mapToGroupAgg f = foldrWithKey' (\k v -> (:) (GroupAggR (Left k) $ f v)) []
