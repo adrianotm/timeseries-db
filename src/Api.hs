@@ -57,8 +57,7 @@ clearData = (ask >>= flip update' ClearTS) $> NoContent
 
 queryData :: QueryModel
            -> AcidReaderT QueryR
-queryData qm  | emptyQM qm = QR . Left <$> getData
-              | fst $ illegalQM qm = throwError $ err404 { errBody = C.pack $ snd $ illegalQM qm }
+queryData qm  | fst $ illegalQM qm = throwError $ err404 { errBody = C.pack $ snd $ illegalQM qm }
               | otherwise = ask >>= flip query' (FilterTS qm) >>= either
                                                                   (\m -> throwError $ err404 { errBody = C.pack m })
                                                                   return

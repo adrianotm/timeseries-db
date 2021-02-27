@@ -61,7 +61,7 @@ tagQuery = ask
               -> case aggQ of
     (Just AvgAgg) ->  aggTag getAverage (toAvg . value) >>=
                                 either (handleAgg "Average failed")
-                                (return . toAggRG (fromMaybe 0 . getAverage) . Left)
+                                       (return . toAggRG (fromMaybe 0 . getAverage) . Left)
     (Just SumAgg) ->  aggTag getSum (Sum . value) <&> either toAggR (toAggRG getSum . Left)
     (Just CountAgg) ->  aggTag getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum . Left)
     (Just MinAgg) ->  aggTag getMin (Min . value) <&> either toAggR (toAggRG getMin . Left)

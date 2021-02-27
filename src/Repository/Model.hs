@@ -32,6 +32,8 @@ type Tag = Either String Int
 type Val = Float
 type Ix = Int
 
+data QueryType = TSQType | GeneralQ
+
 data GroupBy = GByTimestemp | GByTag | IllegalGBy
     deriving (Show)
 
@@ -141,13 +143,22 @@ instance FromJSON QueryModel where
         <*> v .:? "aggFunc"
         <*> v .:? "groupBy"
 
-emptyQM :: QueryModel -> Bool
-emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
-emptyQM _                                                                 = False
+-- emptyQM :: QueryModel -> Bool
+-- emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
+-- emptyQM _                                                                 = False
 
 justTag :: QueryModel -> Maybe Tag
 justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
 justTag _                                                 = Nothing
+
+toQueryType :: QueryModel -> Either QueryType Tag
+toQueryType Q {gt = (Just _)}    = Left TSQType
+toQueryType Q {ge = (Just _)}    = Left TSQType
+toQueryType Q {lt = (Just _)}    = Left TSQType
+toQueryType Q {le = (Just _)}    = Left TSQType
+toQueryType Q {tsEq = (Just _)}  = Left TSQType
+toQueryType Q {tagEq = (Just t)} = Right t
+toQueryType _                    = Left GeneralQ
 
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
@@ -158,8 +169,6 @@ illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with 
 illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {group = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
-illegalQM Q {group = (Just GByTimestemp), tagEq = (Just _)}  = (True, "Invalid query. Can't use 'tagEq' with 'groupBy = timestamp'.")
-illegalQM Q {group = (Just GByTag), tsEq = (Just _)}   = (True, "Invalid query. Can't use 'tsEq' with 'groupBy = tag.")
 illegalQM _                                   = (False, "")
 
 deriveSafeCopy 0 'base ''AggR
