@@ -15,6 +15,7 @@ import           Control.Monad.State    (MonadState, evalState, get, put)
 import           Data.Acid              (Query, Update, makeAcidic)
 import           Data.Foldable
 import           Data.Functor
+import           Data.Maybe
 import qualified Data.Sequence          as S
 import qualified Data.Vector            as V
 import qualified DataS.IntMap           as IM
@@ -39,20 +40,26 @@ qmToF Q {lt = (Just lt)}                 = IM.lookupLT' False lt
 qmToF Q {le = (Just le)}                 = IM.lookupLT' True le
 qmToF Q {}                               = id         --- returns error
 
-insertTS :: [TS] -> Update TimeseriesDB ()
+validInsert :: TimeseriesDB -> [TS] -> Bool
+validInsert TimeseriesDB{..} = all (\TS{..} -> isNothing $ M.lookup tag =<< IM.lookup timestamp tIx)
+
+insertTS :: [TS] -> Update TimeseriesDB (Either String ())
 insertTS ts = do db@TimeseriesDB{..} <- get
-                 let startIx = V.length data' in
-                     put $ TimeseriesDB (evalState (IM.foldIx ts f tIx) startIx)
-                                        (evalState (M.foldIx ts z sIx) startIx)
-                                        (data' V.++ V.fromList ts)
-                         where f tss = (timestamp tss, tag tss)
-                               z = tag
+                 if not $ validInsert db ts
+                    then return $ Left "Duplicate timestamp and tag."
+                    else let startIx = V.length data' in
+                        do put $ TimeseriesDB (evalState (IM.foldIx ts f tIx) startIx)
+                                              (evalState (M.foldIx ts z sIx) startIx)
+                                              (data' V.++ V.fromList ts)
+                           return $ Right ()
+                 where f tss = (timestamp tss, tag tss)
+                       z = tag
 
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either String QueryR)
 filterTS qm@Q{..} = ask <&> \db -> maybe
                                   (runReader (runExceptT tsQuery) $ TSQuery tagEq aggFunc tsEq group (qmToF qm) qm db)
-                                  (runReader (runExceptT tagQuery) . TagQ aggFunc db)
+                                  (runReader (runExceptT tagQuery) . TagQ aggFunc db group)
                                   (justTag qm)
 
 getAllTS :: Query TimeseriesDB [TS]

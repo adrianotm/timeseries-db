@@ -45,7 +45,9 @@ api :: Proxy API
 api = Proxy
 
 updateData :: [TS] -> AcidReaderT [TS]
-updateData ts = (ask >>= flip update' (InsertTS ts)) $> ts
+updateData ts = (ask >>= flip update' (InsertTS ts))
+                           >>= either (\m -> throwError $ err404 { errBody = C.pack m})
+                                      (const $ return ts)
 
 getData :: AcidReaderT [TS]
 getData = ask >>= flip query' GetAllTS

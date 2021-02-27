@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 {-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
@@ -15,9 +16,12 @@ import           Data.Aeson           (FromJSON, Object, ToJSON, Value (String),
                                        object, pairs, parseJSON, toEncoding,
                                        toJSON, withObject, (.!=), (.:), (.:?),
                                        (.=))
+import qualified Data.DList           as DL
 import           Data.Maybe           (isJust)
-import           Data.SafeCopy        (base, deriveSafeCopy)
+import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
+                                       getCopy, putCopy, safeGet, safePut)
 import qualified Data.Sequence        as S
+import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V
 import qualified DataS.IntMap         as IM
 import qualified DataS.Map            as M
@@ -53,7 +57,7 @@ data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
 type TagMap = M.Map Tag Ix
 
 data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
-                                   sIx   :: M.Map Tag (S.Seq Ix), -- composite tag index
+                                   sIx   :: M.Map Tag (DL.DList Ix), -- composite tag index
                                    data' :: V.Vector TS } -- all data
 
 data QueryModel = Q { gt      :: Maybe Timestamp
@@ -67,6 +71,10 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     }
         deriving (Generic, Show)
 
+
+instance (Typeable a,SafeCopy a) => SafeCopy (DL.DList a) where
+    getCopy = contain $ fmap DL.fromList safeGet
+    putCopy = contain . safePut . DL.toList
 
 instance Bounded Float where
     { minBound = -1/0; maxBound = 1/0 }
