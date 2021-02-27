@@ -11,6 +11,7 @@ module Repository.Model where
 
 import           Control.Applicative  ((<|>))
 import           Control.Monad.Except (ExceptT)
+import           Control.Monad.Reader (Reader)
 import           Data.Acid            (Query, Update, makeAcidic)
 import           Data.Aeson           (FromJSON, Object, ToJSON, Value (String),
                                        object, pairs, parseJSON, toEncoding,
@@ -69,7 +70,7 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , tsEq    :: Maybe Timestamp
                     , tagEq   :: Maybe Tag
                     , aggFunc :: Maybe Agg
-                    , group   :: Maybe GroupBy
+                    , groupBy :: Maybe GroupBy
                     }
         deriving (Generic, Show)
 
@@ -147,18 +148,9 @@ instance FromJSON QueryModel where
 -- emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
 -- emptyQM _                                                                 = False
 
-justTag :: QueryModel -> Maybe Tag
-justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
-justTag _                                                 = Nothing
-
-toQueryType :: QueryModel -> Either QueryType Tag
-toQueryType Q {gt = (Just _)}    = Left TSQType
-toQueryType Q {ge = (Just _)}    = Left TSQType
-toQueryType Q {lt = (Just _)}    = Left TSQType
-toQueryType Q {le = (Just _)}    = Left TSQType
-toQueryType Q {tsEq = (Just _)}  = Left TSQType
-toQueryType Q {tagEq = (Just t)} = Right t
-toQueryType _                    = Left GeneralQ
+-- justTag :: QueryModel -> Maybe Tag
+-- justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
+-- justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
@@ -168,7 +160,7 @@ illegalQM Q {tsEq = (Just _), gt = (Just _)}  = (True, "Can't query 'tsEq' with 
 illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
 illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {group = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
+illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
 illegalQM _                                   = (False, "")
 
 deriveSafeCopy 0 'base ''AggR

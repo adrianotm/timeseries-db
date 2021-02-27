@@ -1,4 +1,4 @@
-module Lib
+module App
     ( startApp
     ) where
 
