@@ -34,7 +34,7 @@ type TSServer api = ServerT api AcidReaderT
 
 
 type TimeseriesApi =
-   ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
+   ReqBody '[JSON] [TS] :> Post '[JSON] ()
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
@@ -45,10 +45,9 @@ type API = "timeseries" :> TimeseriesApi
 api :: Proxy API
 api = Proxy
 
-insertData :: [TS] -> AcidReaderT [TS]
-insertData ts = (ask >>= flip update' (InsertTS ts))
-                           >>= either (\m -> throwError $ err404 { errBody = C.pack m})
-                                      (const $ return ts)
+insertData :: [TS] -> AcidReaderT ()
+insertData ts = ask >>= flip update' (InsertTS ts)
+                           >>= maybe (return ()) (\m -> throwError $ err404 { errBody = C.pack $ unlines m})
 
 updateData :: [TS] -> AcidReaderT ()
 updateData ts = ask >>= flip update' (UpdateTS ts)
