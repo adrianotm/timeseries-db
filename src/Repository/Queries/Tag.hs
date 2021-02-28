@@ -19,11 +19,11 @@ aggTag :: Monoid m =>
     -> (m -> a)
     -> (TS -> m)
     -> ExceptQ (AggRes a m)
-aggTag tag get to = ask >>= \InternalQ{qm=Q{..}, ..}
-                              -> case M.lookup tag (sIx tdb) of
+aggTag tag get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
+                              -> case M.lookup tag sIx of
                                  Nothing  -> throwE $ noDataErr tag
                                  (Just dl) -> case groupBy of
-                                               (Just GByTag) -> return $! toTagAggR $ foldMap' (toGroup tag . to . (V.!) (data' tdb)) dl
-                                               Nothing -> return $! toCollAggR $ get $ foldMap' (to . (V.!) (data' tdb)) dl
+                                               (Just GByTag) -> return $! toTagAggR $ foldMap' (toGroup tag . to . (V.!) data') dl
+                                               Nothing -> return $! toCollAggR $ get $ foldMap' (to . (V.!) data') dl
                                                (Just GByTimestemp) -> throwE "Can't use 'groupBy = timestamp with 'tagEq'."
                                                (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."

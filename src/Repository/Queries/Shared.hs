@@ -38,3 +38,6 @@ toTagAggR = Right . Left . getGroup
 toTSAggR :: Group Timestamp v -> AggRes a v
 toTSAggR = Right . Right . getGroup
 
+toAggRG :: Semigroup v => (v -> Val) -> Either (M.Map Tag v) (M.Map Timestamp v) -> QueryR
+toAggRG f m = QR $ Right $ Left $ either (trans Left) (trans Right) m
+    where trans keyF = M.foldrWithKey' (\k v -> (:) (GroupAggR (keyF k) $ f v)) []

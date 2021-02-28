@@ -55,10 +55,3 @@ instance (Semigroup v, Ord k) => Monoid (Group k v) where
 
 toGroup :: k -> v -> Group k v
 toGroup k v = Group $ singleton k v
-
-mapToGroupAgg :: Semigroup v => (v -> Val) -> Map Tag v -> [GroupAggR]
-mapToGroupAgg f = foldrWithKey' (\k v -> (:) (GroupAggR (Left k) $ f v)) []
-
-toAggRG :: Semigroup v => (v -> Val) -> Either (Map Tag v) (Map Timestamp v) -> QueryR
-toAggRG f (Left m) = QR $ Right $ Left $ foldrWithKey' (\k v -> (:) (GroupAggR (Left k) $ f v)) [] m
-toAggRG f (Right m) = QR $ Right $ Left $ foldrWithKey' (\k v -> (:) (GroupAggR (Right k) $ f v)) [] m

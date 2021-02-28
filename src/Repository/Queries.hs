@@ -19,9 +19,7 @@ import           Repository.Queries.TS
 
 import           Aggregates
 
-type AggFunc a m = (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
-
-aggF :: Monoid m => QueryModel -> AggFunc a m
+aggF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
 aggF Q {gt = (Just _)}    = aggTS
 aggF Q {ge = (Just _)}    = aggTS
 aggF Q {lt = (Just _)}    = aggTS

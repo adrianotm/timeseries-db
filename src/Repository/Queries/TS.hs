@@ -33,26 +33,26 @@ aggTS' :: (Monoid v) =>
         -> (TS -> v)
         -> ExceptQ (AggRes a v)
 aggTS' get to = ask
-                  >>= \InternalQ{qm=qm@Q{..}, ..}
+                  >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
-                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to (data' tdb)) (qmToF qm $ tIx tdb)
-                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagEq (data' tdb)) (qmToF qm $ tIx tdb)
+                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to data') (qmToF qm  tIx )
+                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagEq data') (qmToF qm tIx)
                           (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq $ data' tdb) (qmToF qm $ tIx tdb)
+                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq data') (qmToF qm tIx)
 
 aggTS :: (Monoid v) =>
         (v -> a)
         -> (TS -> v)
         -> ExceptQ (AggRes a v)
-aggTS get to = ask >>= \InternalQ{qm=Q{..}, ..}
+aggTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                          -> case tsEq of
                              Nothing -> aggTS' get to
                              (Just ts)
-                                -> case IM.lookup ts (tIx tdb) of
+                                -> case IM.lookup ts tIx of
                                       Nothing -> throwE "Timestamp not found"
                                       (Just m)
                                          -> case groupBy of
-                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) Nothing (data' tdb) m
+                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) Nothing data' m
                                               (Just GByTag) -> throwE "Can't use 'groupBy = tag' with 'tsEq'."
                                               (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                                              Nothing -> return $ toCollAggR $ get $! mapToM to tagEq (data' tdb) m
+                                              Nothing -> return $ toCollAggR $ get $! mapToM to tagEq data' m
