@@ -13,9 +13,9 @@ aggGeneral :: Monoid m =>
     (m -> a)
     -> (TS -> m)
     -> ExceptQ (AggRes a m)
-aggGeneral get to = ask >>= \InternalQ{qm=Q{..}, ..}
+aggGeneral get to = ask >>= \InternalQ{qm=Q{..}, tdb=TimeseriesDB{..}}
                                  -> case groupBy of
-                                         (Just GByTag) -> return $! toTagAggR $ foldMap' (\ts@TS{..} -> toGroup tag $ to ts) (data' tdb)
-                                         (Just GByTimestemp) -> return $! toTSAggR $ foldMap' (\ts@TS{..} -> toGroup timestamp $ to ts) (data' tdb)
-                                         Nothing -> return $! toCollAggR $ get $ foldMap' to (data' tdb)
+                                         (Just GByTag) -> return $! toTagAggR $ foldMap' (\ts@TS{..} -> toGroup tag $ to ts) _data'
+                                         (Just GByTimestemp) -> return $! toTSAggR $ foldMap' (\ts@TS{..} -> toGroup timestamp $ to ts) _data'
+                                         Nothing -> return $! toCollAggR $ get $ foldMap' to _data'
                                          (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."

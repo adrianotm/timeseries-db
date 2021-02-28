@@ -5,6 +5,7 @@ module DataS.IntMap
    , IM.lookup
    , IM.empty
    , IM.insertWith
+   , (IM.!)
    ) where
 
 import           Control.Monad.State

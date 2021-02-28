@@ -35,6 +35,7 @@ type TSServer api = ServerT api AcidReaderT
 
 type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] [TS]
+   :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
@@ -44,10 +45,14 @@ type API = "timeseries" :> TimeseriesApi
 api :: Proxy API
 api = Proxy
 
-updateData :: [TS] -> AcidReaderT [TS]
-updateData ts = (ask >>= flip update' (InsertTS ts))
+insertData :: [TS] -> AcidReaderT [TS]
+insertData ts = (ask >>= flip update' (InsertTS ts))
                            >>= either (\m -> throwError $ err404 { errBody = C.pack m})
                                       (const $ return ts)
+
+updateData :: [TS] -> AcidReaderT ()
+updateData ts = ask >>= flip update' (UpdateTS ts)
+                        >>= maybe (return ()) (\m -> throwError $ err404 { errBody = C.pack $ unlines m})
 
 getData :: AcidReaderT [TS]
 getData = ask >>= flip query' GetAllTS
@@ -63,7 +68,8 @@ queryData qm  | fst $ illegalQM qm = throwError $ err404 { errBody = C.pack $ sn
                                                                   return
 
 tsHandlers :: TSServer TimeseriesApi
-tsHandlers = updateData
+tsHandlers = insertData
+        :<|> updateData
         :<|> queryData
         :<|> getData
         :<|> clearData

@@ -10,6 +10,7 @@
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
+import           Control.Lens         (makeLenses)
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 import           Data.Acid            (Query, Update, makeAcidic)
@@ -59,9 +60,11 @@ data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
 
 type TagMap = M.Map Tag Ix
 
-data TimeseriesDB = TimeseriesDB { tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
-                                   sIx   :: M.Map Tag (DL.DList Ix), -- composite tag index
-                                   data' :: V.Vector TS } -- all data
+data TimeseriesDB = TimeseriesDB { _tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
+                                   _sIx   :: M.Map Tag (DL.DList Ix), -- composite tag index
+                                   _data' :: V.Vector TS } -- all data
+
+makeLenses ''TimeseriesDB
 
 data QueryModel = Q { gt      :: Maybe Timestamp
                     , lt      :: Maybe Timestamp
@@ -143,14 +146,6 @@ instance FromJSON QueryModel where
             )
         <*> v .:? "aggFunc"
         <*> v .:? "groupBy"
-
--- emptyQM :: QueryModel -> Bool
--- emptyQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing) = True
--- emptyQM _                                                                 = False
-
--- justTag :: QueryModel -> Maybe Tag
--- justTag (Q Nothing Nothing Nothing Nothing Nothing a _ _) = a
--- justTag _                                                 = Nothing
 
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")

@@ -8,6 +8,7 @@ module DataS.Map
    , M.empty
    , M.foldl
    , M.lookup
+   , (M.!)
    ) where
 
 import           Control.Monad.State

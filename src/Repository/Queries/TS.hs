@@ -35,10 +35,10 @@ aggTS' :: (Monoid v) =>
 aggTS' get to = ask
                   >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
-                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to data') (qmToF qm  tIx )
-                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagEq data') (qmToF qm tIx)
+                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to _data') (qmToF qm  _tIx)
+                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagEq _data') (qmToF qm _tIx)
                           (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq data') (qmToF qm tIx)
+                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq _data') (qmToF qm _tIx)
 
 aggTS :: (Monoid v) =>
         (v -> a)
@@ -48,11 +48,11 @@ aggTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                          -> case tsEq of
                              Nothing -> aggTS' get to
                              (Just ts)
-                                -> case IM.lookup ts tIx of
+                                -> case IM.lookup ts _tIx of
                                       Nothing -> throwE "Timestamp not found"
                                       (Just m)
                                          -> case groupBy of
-                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) Nothing data' m
+                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) Nothing _data' m
                                               (Just GByTag) -> throwE "Can't use 'groupBy = tag' with 'tsEq'."
                                               (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                                              Nothing -> return $ toCollAggR $ get $! mapToM to tagEq data' m
+                                              Nothing -> return $ toCollAggR $ get $! mapToM to tagEq _data' m
