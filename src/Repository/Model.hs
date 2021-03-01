@@ -157,7 +157,7 @@ instance Fields f => Fields (C1 x f) where
     fields = fields @f
 
 instance (Selector s) => Fields (S1 s a) where
-  fields = [selName (undefined :: M1 S s (K1 R t) ())]
+  fields = [selName (undefined :: S1 s a r)]
 
 instance (Fields f, Fields g) => Fields (f :*: g) where
     fields = fields @f ++ fields @g
