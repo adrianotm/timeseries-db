@@ -1,17 +1,27 @@
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE DeriveAnyClass      #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE InstanceSigs        #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeInType          #-}
+{-# LANGUAGE TypeOperators       #-}
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
 import           Control.Lens         (makeLenses)
+import           Control.Monad        (forM)
 import           Control.Monad.Except (ExceptT)
+import           Control.Monad.Fail   (fail)
 import           Control.Monad.Reader (Reader)
 import           Data.Acid            (Query, Update, makeAcidic)
 import           Data.Aeson           (FromJSON, Object, ToJSON, Value (String),
@@ -19,15 +29,18 @@ import           Data.Aeson           (FromJSON, Object, ToJSON, Value (String),
                                        toJSON, withObject, (.!=), (.:), (.:?),
                                        (.=))
 import qualified Data.DList           as DL
-import           Data.Maybe           (isJust)
+import           Data.Functor
+import qualified Data.HashMap.Strict  as HM
+import           Data.List            (intercalate)
+import           Data.Maybe           (isJust, mapMaybe)
 import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
                                        getCopy, putCopy, safeGet, safePut)
-import qualified Data.Sequence        as S
+import           Data.Text            (Text, unpack)
 import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V
 import qualified DataS.IntMap         as IM
 import qualified DataS.Map            as M
-import           GHC.Generics         (Generic)
+import           GHC.Generics
 
 type Timestamp = Int
 type Tag = Either String Int
@@ -134,29 +147,37 @@ instance ToJSON GroupAggR where
     toEncoding (GroupAggR (Right ts) res) =
         pairs ("timestamp" .= ts <> "result" .= res)
 
-instance FromJSON QueryModel where
-    parseJSON = withObject "QueryModel" $ \v -> Q
-        <$> v .:? "gt"
-        <*> v .:? "lt"
-        <*> v .:? "ge"
-        <*> v .:? "le"
-        <*> v .:? "tsEq"
-        <*> (   (fmap Left <$> v .:? "tagEq")
-            <|> (fmap Right <$> v .:? "tagEq")
-            )
-        <*> v .:? "aggFunc"
-        <*> v .:? "groupBy"
+class Fields a where
+    fields :: [String]
 
-illegalQM :: QueryModel -> (Bool, String)
-illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
-illegalQM Q {gt = (Just _), ge = (Just _)}    = (True, "Can't query 'gt' and 'ge' at the same time.")
-illegalQM Q {lt = (Just _), le = (Just _)}    = (True, "Can't query 'lt' and 'le' at the same time.")
-illegalQM Q {tsEq = (Just _), gt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {tsEq = (Just _), ge = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {tsEq = (Just _), lt = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {tsEq = (Just _), le = (Just _)}  = (True, "Can't query 'tsEq' with any other timeseries condition.")
-illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'group'.")
-illegalQM _                                   = (False, "")
+instance Fields f => Fields (D1 x f) where
+    fields = fields @f
+
+instance Fields f => Fields (C1 x f) where
+    fields = fields @f
+
+instance (Selector s) => Fields (S1 s a) where
+  fields = [selName (undefined :: M1 S s (K1 R t) ())]
+
+instance (Fields f, Fields g) => Fields (f :*: g) where
+    fields = fields @f ++ fields @g
+
+instance FromJSON QueryModel where
+    parseJSON = withObject "QueryModel" $ \v -> do
+        gt <- v .:? "gt"
+        lt <- v .:? "lt"
+        ge <- v .:? "ge"
+        le <- v .:? "le"
+        tsEq <- v .:? "tsEq"
+        tagEq <- (fmap Left <$> v .:? "tagEq")
+             <|> (fmap Right <$> v .:? "tagEq")
+        aggFunc <- v .:? "aggFunc"
+        groupBy <- v .:? "groupBy"
+        case mapMaybe (\k -> if unpack k `elem` fields @(Rep QueryModel)
+                                        then Nothing
+                                        else Just (show k)) (HM.keys v) of
+           []  -> return $ Q{..}
+           unexpectedFields -> fail $ "Fields: " ++ intercalate "," unexpectedFields ++ " are not allowed."
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''GroupAggR

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE RankNTypes            #-}
@@ -26,6 +27,7 @@ import           Servant.API
 import           Aggregates
 import           Repository.Handlers
 import           Repository.Model
+import           Repository.Utils
 
 debug = flip trace
 
@@ -47,11 +49,15 @@ api = Proxy
 
 insertData :: [TS] -> AcidReaderT ()
 insertData ts = ask >>= flip update' (InsertTS ts)
-                           >>= maybe (return ()) (\m -> throwError $ err404 { errBody = C.pack $ unlines m})
+                           >>= \case
+                                  [] -> return ()
+                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
 
 updateData :: [TS] -> AcidReaderT ()
 updateData ts = ask >>= flip update' (UpdateTS ts)
-                        >>= maybe (return ()) (\m -> throwError $ err404 { errBody = C.pack $ unlines m})
+                        >>= \case
+                               [] -> return ()
+                               errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
 
 getData :: AcidReaderT [TS]
 getData = ask >>= flip query' GetAllTS
