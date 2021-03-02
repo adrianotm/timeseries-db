@@ -51,7 +51,7 @@ filterTS :: QueryModel
 filterTS qm@Q{..} = ask <&> \db -> runReader (runExceptT query) $ InternalQ qm db
 
 getAllTS :: Query TimeseriesDB [TS]
-getAllTS = ask <&> DL.toList . getList . foldMap' toCollect . _data'
+getAllTS = ask <&> \db -> DL.toList $ getList $! foldMap' toCollect $ _data' db
 
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty

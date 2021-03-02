@@ -35,10 +35,10 @@ aggTS' :: (Monoid v) =>
 aggTS' get to = ask
                   >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
-                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to _data') (qmToF qm  _tIx)
-                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to tagEq _data') (qmToF qm _tIx)
+                          (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to _data' $!) (qmToF qm  _tIx)
+                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k v -> toGroup k $ mapToM to tagEq _data' $! v) (qmToF qm _tIx)
                           (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq _data') (qmToF qm _tIx)
+                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq _data' $!) (qmToF qm _tIx)
 
 aggTS :: (Monoid v) =>
         (v -> a)
