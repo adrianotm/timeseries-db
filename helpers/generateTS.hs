@@ -6,7 +6,7 @@ import           Repository.Model
 
 generateTS :: IO [TS]
 generateTS = do now <- getPOSIXTime
-                return [TS (round (1614019694 + fromIntegral i)) (Left "adrian") 66 | i <- [0..100000]]
+                return [TS (round (1111 + fromIntegral i)) (Tag $ Left "adrian") 66 | i <- [0..100]]
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS

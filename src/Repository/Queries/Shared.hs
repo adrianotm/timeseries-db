@@ -19,6 +19,8 @@ qmToF Q {lt = (Just lt)}                 = IM.lookupLT' False lt
 qmToF Q {le = (Just le)}                 = IM.lookupLT' True le
 qmToF Q {}                               = id
 
+data QueryType = TSQuery | TagQuery Tag
+
 data InternalQ = InternalQ { qm  :: QueryModel
                            , tdb :: TimeseriesDB
                            }
@@ -41,3 +43,12 @@ toTSAggR = Right . Right . getGroup
 toAggRG :: Semigroup v => (v -> Val) -> Either (M.Map Tag v) (M.Map Timestamp v) -> QueryR
 toAggRG f m = QR $ Right $ Left $ either (trans Left) (trans Right) m
     where trans keyF = M.foldrWithKey' (\k v -> (:) (GroupAggR (keyF k) $ f v)) []
+
+qmToQT :: QueryModel -> QueryType
+qmToQT Q {lt = (Just t)}    = TSQuery
+qmToQT Q {le = (Just t)}    = TSQuery
+qmToQT Q {gt = (Just t)}    = TSQuery
+qmToQT Q {ge = (Just t)}    = TSQuery
+qmToQT Q {tsEq = (Just t)}  = TSQuery
+qmToQT Q {tagEq = (Just t)} = TagQuery t
+qmToQT _                    = TSQuery

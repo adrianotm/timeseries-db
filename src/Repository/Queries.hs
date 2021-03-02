@@ -20,12 +20,13 @@ import           Repository.Queries.TS
 import           Aggregates
 
 aggF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
-aggF Q {tagEq = (Just t)} = aggTag t
-aggF _                    = aggTS
+aggF qm = case qmToQT qm of
+                TSQuery    -> aggTS
+                TagQuery t -> aggTag t
 
 query :: ExceptQ QueryR
 query = ask
-    >>= \InternalQ{qm=qm@Q{..}, ..}
+    >>= \InternalQ{qm=qm@Q{..}}
         -> case aggFunc of
             (Just AvgAgg) -> aggF qm getAverage (toAvg . value) >>=
                                         either (handleAgg "Average failed")
@@ -35,4 +36,6 @@ query = ask
             (Just MinAgg) ->  aggF qm getMin (Min . value) <&> either toAggR (toAggRG getMin)
             (Just MaxAgg) ->  aggF qm getMax (Max . value) <&> either toAggR (toAggRG getMax)
             (Just IllegalAgg) -> throwE "Illegal aggregation function"
-            Nothing -> aggF qm getList toCollect <&> toCollR . fromLeft DL.empty
+            Nothing -> (case qmToQT qm of
+                         TSQuery    -> aggF qm getCollList toCollect <&> toCollR . fromLeft []
+                         TagQuery _ -> aggF qm getOrdList toOrdCollect <&> toCollR . fromLeft [])

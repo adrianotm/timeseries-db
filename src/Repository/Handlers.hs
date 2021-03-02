@@ -49,7 +49,7 @@ insertTS ts = do db@TimeseriesDB{..} <- get
 
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either Error QueryR)
-filterTS qm@Q{..} = ask <&> \db -> runReader (runExceptT query) $ InternalQ qm db
+filterTS qm@Q{..} = ask <&> runReader (runExceptT query) . InternalQ qm
 
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty

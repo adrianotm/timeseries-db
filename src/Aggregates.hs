@@ -19,6 +19,9 @@ instance Monoid (Collect n) where
   mappend=(<>)
   mempty = Collect DL.empty
 
+getCollList :: Collect n -> [n]
+getCollList = DL.toList . getList
+
 ---------------------------
 newtype OrdCollect n = OrdCollect { getOrdCollect :: S.Set n }
 
@@ -69,8 +72,8 @@ toGroup k v = Group $ singleton k v
 toAggR :: Val -> QueryR
 toAggR = QR . Right . Right . AggR
 
-toCollR :: DL.DList TS -> QueryR
-toCollR = QR . Left . DL.toList
+toCollR :: [TS] -> QueryR
+toCollR = QR . Left
 
 handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
 handleAgg err = maybe (throwError err) (return . toAggR)

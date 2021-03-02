@@ -87,6 +87,12 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
     deriving (Show,Generic)
 
+instance Eq TS where
+    (TS t1 _ _) == (TS t2 _ _) = t1 == t2
+
+instance Ord TS where
+    compare (TS t1 _ _) (TS t2 _ _) = compare t1 t2
+
 type TagMap = M.Map Tag Ix
 
 data TimeseriesDB = TimeseriesDB { _tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
