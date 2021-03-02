@@ -19,10 +19,10 @@ unsafeIndexOf :: TS -> TimeseriesDB -> Ix
 unsafeIndexOf TS{..} TimeseriesDB{..} = (_tIx IM.! timestamp) M.! tag
 
 errMsgUpdate :: TS -> Error
-errMsgUpdate TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ either show show tag ++ " not found."
+errMsgUpdate TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " not found."
 
 errMsgInsert :: TS -> Error
-errMsgInsert TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ either show show tag ++ " already exists."
+errMsgInsert TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " already exists."
 
 validUpdate :: TimeseriesDB -> [TS] -> [Error]
 validUpdate TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> maybe (Just $ errMsgUpdate ts) (const Nothing) (M.lookup tag =<< IM.lookup timestamp _tIx))

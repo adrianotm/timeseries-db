@@ -12,7 +12,7 @@ import           Repository.Model
 import           Repository.Queries.Shared
 
 noDataErr :: Tag -> String
-noDataErr tg = "No data for tag " ++ either show show tg
+noDataErr tg = "No data for tag " ++ show tg
 
 aggTag :: Monoid m =>
     Tag

@@ -3,6 +3,7 @@ module Aggregates where
 import           Control.Monad.Except
 import qualified Data.DList           as DL
 import           Data.Foldable
+import qualified Data.Set             as S
 import           DataS.Map
 import           Repository.Model
 
@@ -18,7 +19,23 @@ instance Monoid (Collect n) where
   mappend=(<>)
   mempty = Collect DL.empty
 
-------
+---------------------------
+newtype OrdCollect n = OrdCollect { getOrdCollect :: S.Set n }
+
+toOrdCollect :: a -> OrdCollect a
+toOrdCollect a = OrdCollect (S.singleton a)
+
+instance Ord n => Semigroup (OrdCollect n) where
+  OrdCollect x <> OrdCollect y = OrdCollect $ S.union x y
+
+instance Ord n => Monoid (OrdCollect n) where
+  mempty = OrdCollect S.empty
+  mappend = (<>)
+
+getOrdList :: OrdCollect n -> [n]
+getOrdList = S.toList . getOrdCollect
+
+---------------------------
 data Average n = Average { length :: !Int, sum :: !n }
 
 toAvg :: a -> Average a
@@ -35,15 +52,7 @@ instance Num n => Monoid (Average n) where
   mappend = (<>)
   mempty = Average 0 0
 
-toAggR :: Val -> QueryR
-toAggR = QR . Right . Right . AggR
-
-toCollR :: DL.DList TS -> QueryR
-toCollR = QR . Left . DL.toList
-
-handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
-handleAgg err = maybe (throwError err) (return . toAggR)
-
+---------------------------
 newtype Group k v = Group { getGroup :: Map k v }
 
 instance (Semigroup v, Ord k) => Semigroup (Group k v) where
@@ -53,5 +62,15 @@ instance (Semigroup v, Ord k) => Monoid (Group k v) where
   mempty = Group empty
   mappend = (<>)
 
+--------------------------
 toGroup :: k -> v -> Group k v
 toGroup k v = Group $ singleton k v
+
+toAggR :: Val -> QueryR
+toAggR = QR . Right . Right . AggR
+
+toCollR :: DL.DList TS -> QueryR
+toCollR = QR . Left . DL.toList
+
+handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
+handleAgg err = maybe (throwError err) (return . toAggR)

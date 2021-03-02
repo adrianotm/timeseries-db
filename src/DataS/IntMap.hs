@@ -5,6 +5,9 @@ module DataS.IntMap
    , IM.lookup
    , IM.empty
    , IM.insertWith
+   , IM.keys
+   , IM.lookupMax
+   , IM.lookupMin
    , (IM.!)
    ) where
 

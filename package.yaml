@@ -46,6 +46,7 @@ dependencies:
   - vector
   - transformers
   - dlist
+  - scientific
 
 library:
   source-dirs: src

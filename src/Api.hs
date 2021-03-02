@@ -34,13 +34,14 @@ debug = flip trace
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT
 
-
 type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] ()
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
    :<|> Delete '[PlainText] NoContent
+   :<|> "timestamps" :> QueryFlag "bounded" :> Get '[JSON] [Timestamp]
+   :<|> "tags" :> Get '[JSON] [Tag]
 
 type API = "timeseries" :> TimeseriesApi
 
@@ -60,7 +61,7 @@ updateData ts = ask >>= flip update' (UpdateTS ts)
                                errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
 
 getData :: AcidReaderT [TS]
-getData = ask >>= flip query' GetAllTS
+getData = queryData emptyQM >>= \(QR r) -> either return (const $ throwError err500) r
 
 clearData :: AcidReaderT NoContent
 clearData = (ask >>= flip update' ClearTS) $> NoContent
@@ -72,12 +73,21 @@ queryData qm  | fst $ illegalQM qm = throwError $ err404 { errBody = C.pack $ sn
                                                                   (\m -> throwError $ err404 { errBody = C.pack m })
                                                                   return
 
+timestamps :: Bool -> AcidReaderT [Timestamp]
+timestamps b = ask >>= flip query' (AllTimestamps b)
+                        >>= either (\m -> throwError $ err404 { errBody = C.pack m }) return
+
+tags :: AcidReaderT [Tag]
+tags = ask >>= flip query' AllTags
+
 tsHandlers :: TSServer TimeseriesApi
 tsHandlers = insertData
         :<|> updateData
         :<|> queryData
         :<|> getData
         :<|> clearData
+        :<|> timestamps
+        :<|> tags
 
 serverT :: TSServer API
 serverT = tsHandlers

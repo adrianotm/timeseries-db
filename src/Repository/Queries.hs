@@ -20,13 +20,8 @@ import           Repository.Queries.TS
 import           Aggregates
 
 aggF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
-aggF Q {gt = (Just _)}    = aggTS
-aggF Q {ge = (Just _)}    = aggTS
-aggF Q {lt = (Just _)}    = aggTS
-aggF Q {le = (Just _)}    = aggTS
-aggF Q {tsEq = (Just _)}  = aggTS
 aggF Q {tagEq = (Just t)} = aggTag t
-aggF _                    = aggGeneral
+aggF _                    = aggTS
 
 query :: ExceptQ QueryR
 query = ask

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c33e762fc0e6f3fac6d9b6ca34f7f376f8673bac8ffd7d6038d7736ca561736d
+-- hash: 5df7c5c8cd6925d71a31c6490ff91f69c17b60973fc3735b926c989ce96fdecd
 
 name:           diplomska
 version:        0.1.0.0
@@ -61,6 +61,7 @@ library
     , lucid
     , mtl
     , safecopy
+    , scientific
     , servant
     , servant-server
     , string-conversions
@@ -99,6 +100,7 @@ executable diplomska-exe
     , lucid
     , mtl
     , safecopy
+    , scientific
     , servant
     , servant-server
     , string-conversions
@@ -141,6 +143,7 @@ test-suite diplomska-test
     , lucid
     , mtl
     , safecopy
+    , scientific
     , servant
     , servant-server
     , string-conversions

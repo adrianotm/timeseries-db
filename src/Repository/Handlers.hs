@@ -19,6 +19,7 @@ import qualified Data.DList                as DL
 import           Data.Foldable
 import           Data.Function
 import           Data.Functor
+import           Data.Maybe
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
 import qualified DataS.IntMap              as IM
@@ -50,10 +51,18 @@ filterTS :: QueryModel
          -> Query TimeseriesDB (Either Error QueryR)
 filterTS qm@Q{..} = ask <&> \db -> runReader (runExceptT query) $ InternalQ qm db
 
-getAllTS :: Query TimeseriesDB [TS]
-getAllTS = ask <&> \db -> DL.toList $ getList $! foldMap' toCollect $ _data' db
-
 clearTS :: Update TimeseriesDB ()
 clearTS = put $ TimeseriesDB IM.empty M.empty V.empty
 
-makeAcidic ''TimeseriesDB ['insertTS, 'getAllTS, 'clearTS, 'filterTS, 'updateTS]
+allTimestamps :: Bool -> Query TimeseriesDB (Either Error [Timestamp])
+allTimestamps bounded = ask <&> \db ->
+                                  if bounded
+                                    then fromMaybe (Left "No data.") $
+                                          (\(min, _) (max, _) -> Right [min, max])
+                                            <$> IM.lookupMin (_tIx db) <*> IM.lookupMax (_tIx db)
+                                    else Right $ IM.keys $ _tIx db
+
+allTags :: Query TimeseriesDB [Tag]
+allTags = ask <&> M.keys . _sIx
+
+makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS, 'allTimestamps, 'allTags]
