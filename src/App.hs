@@ -7,7 +7,7 @@ import           Control.Exception.Base   (bracket)
 import           Data.Acid.Local
 import           Data.IntMap              as IM
 import           Data.Vector              as V
-import           DataS.Map                as M
+import           DataS.HashMap            as HM
 import           Network.Wai.Handler.Warp
 
 import           Api
@@ -15,6 +15,6 @@ import           Repository.Model
 
 startApp :: IO ()
 startApp = bracket
-            (openLocalState $ TimeseriesDB IM.empty M.empty V.empty)
+            (openLocalState $ TimeseriesDB IM.empty HM.empty V.empty)
             createCheckpointAndClose
             (run 8081 . app)

@@ -4,9 +4,10 @@ module Repository.Queries.TS where
 import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except
 import           Data.Foldable
+import qualified Data.Map.Strict            as M
 import qualified Data.Vector                as V
+import qualified DataS.HashMap              as HM
 import qualified DataS.IntMap               as IM
-import qualified DataS.Map                  as M
 
 import           Aggregates
 import           Repository.Model
@@ -16,17 +17,17 @@ mapToM :: (Monoid m) =>
   (TS -> m)
   -> Maybe Tag
   -> V.Vector TS
-  -> M.Map Tag Ix
+  -> HM.HashMap Tag Ix
   -> m
 mapToM toM Nothing d m   = foldMap' (toM . (V.!) d) m
-mapToM toM (Just tg) d m = maybe mempty (toM . (V.!) d) (M.lookup tg m)
+mapToM toM (Just tg) d m = maybe mempty (toM . (V.!) d) (HM.lookup tg m)
 
 mapToMG :: (Monoid v) =>
   (TS -> v)
   -> V.Vector TS
-  -> M.Map Tag Ix
+  -> HM.HashMap Tag Ix
   -> Group Tag v
-mapToMG toM d = M.foldMapWithKey' (\k -> toGroup k . toM . (V.!) d)
+mapToMG toM d = HM.foldMapWithKey' (\k -> toGroup k . toM . (V.!) d)
 
 aggTS' :: (Monoid v) =>
            (v -> a)

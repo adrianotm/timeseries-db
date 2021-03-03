@@ -3,8 +3,7 @@ module Aggregates where
 import           Control.Monad.Except
 import qualified Data.DList           as DL
 import           Data.Foldable
-import qualified Data.Set             as S
-import           DataS.Map
+import           Data.Map.Strict
 import           Repository.Model
 
 newtype Collect n = Collect { getList :: DL.DList n }
@@ -21,22 +20,6 @@ instance Monoid (Collect n) where
 
 getCollList :: Collect n -> [n]
 getCollList = DL.toList . getList
-
----------------------------
-newtype OrdCollect n = OrdCollect { getOrdCollect :: S.Set n }
-
-toOrdCollect :: a -> OrdCollect a
-toOrdCollect a = OrdCollect (S.singleton a)
-
-instance Ord n => Semigroup (OrdCollect n) where
-  OrdCollect x <> OrdCollect y = OrdCollect $ S.union x y
-
-instance Ord n => Monoid (OrdCollect n) where
-  mempty = OrdCollect S.empty
-  mappend = (<>)
-
-getOrdList :: OrdCollect n -> [n]
-getOrdList = S.toList . getOrdCollect
 
 ---------------------------
 data Average n = Average { length :: !Int, sum :: !n }

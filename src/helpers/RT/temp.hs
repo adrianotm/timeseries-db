@@ -5,7 +5,6 @@ import           Data.Array
 import           Data.Bits
 import           Data.Foldable
 import           Data.Word
-import           Debug.Trace
 
 type Timestamp = Word32
 
@@ -13,14 +12,16 @@ type Prefix = Word32
 type Mask = Word32
 type Chunk = Word8
 
+data B2 = Z | F | S | T
+
 -- Branching Mode
 data BM a =
-    M2 !a
-  | M4 !a
+    MBinary !a
+  | M2B !a
 
 data Children a =
-      N2 !a !a
-    | N4 !(Array Chunk a)
+      NB !a !a
+    | N2B !a !a !a !a
   deriving (Show)
 
 data RT a =
@@ -28,8 +29,6 @@ data RT a =
   | Leaf !Prefix !a
   | Empty
   deriving (Show)
-
-debug = flip trace
 
 
 --- Empty RadixTree
@@ -64,28 +63,40 @@ wordSize = finiteBitSize (0 :: Prefix)
 
 branchingMode :: Mask -> BM Mask
 branchingMode m
-  | m .&. 0xFFFF0000 == m = M2 m
-  | otherwise = M4 $ if even (countLeadingZeros m) then m + shiftR m 1 else m + shiftL m 1
+  | m .&. 0xFFFF0000 == m = MBinary m
+  | otherwise = M2B $ if even (countLeadingZeros m) then m + shiftR m 1 else m + shiftL m 1
 
 -- Calculate and split node
 link :: Timestamp -> RT a -> Prefix -> RT a -> RT a
 link p1 t1 p2 = linkWithMask (branchingMode $ branchMask p1 p2) p1 t1 p2
 
 linkWithMask :: BM Mask -> Timestamp -> RT a -> Prefix -> RT a -> RT a
-linkWithMask (M2 m) k t1 _ t2
-  | zero k m = Branch p m (N2 t1 t2)
-  | otherwise = Branch p m (N2 t2 t1)
- where
-     p = mask k m
-
-linkWithMask (M4 m) k t1 p2 t2 = Branch p m (N4 $ array (0, 3)
-                                                        [(i, rt) | i <- [0..3],
-                                                                   let rt | i == rm1 = t1
-                                                                          | i == rm2 = t2
-                                                                          | otherwise = Empty])
-  where p = mask k m
-        rm1 = reduceMask k m
-        rm2 = reduceMask p2 m
+linkWithMask bm k t1 p2 t2 =
+  case bm of
+    (MBinary m)
+        | zero k m -> Branch p m (NB t1 t2)
+        | otherwise -> Branch p m (NB t2 t1)
+       where
+           p = mask k m
+    (M2B m) -> Branch p m $ handleBranch rm1 rm2
+        where p = mask k m
+              rm1 = reduceMask k m
+              rm2 = reduceMask p2 m
+              handleBranch a b =
+                case (a,b) of
+                  (Z,F) -> N2B t1 t2 Empty Empty
+                  (F,Z) -> N2B t2 t1 Empty Empty
+                  (Z,S) -> N2B t1 Empty t2 Empty
+                  (S,Z) -> N2B t2 Empty t1 Empty
+                  (Z,T) -> N2B t1 Empty Empty t2
+                  (T,Z) -> N2B t2 Empty Empty t1
+                  (F,S) -> N2B Empty t1 t2 Empty
+                  (S,F) -> N2B Empty t2 t1 Empty
+                  (F,T) -> N2B Empty t1 Empty t2
+                  (T,F) -> N2B Empty t2 Empty t1
+                  (S,T) -> N2B Empty Empty t1 t2
+                  (T,S) -> N2B Empty Empty t2 t1
+                  (_,_) -> N2B Empty Empty Empty Empty    -- Should not happen
 
 -- Insert function
 insert :: Timestamp -> a -> RT a -> RT a
@@ -102,23 +113,27 @@ insert !k !v t =
 handleChilds :: Timestamp -> a -> Mask -> Children (RT a) -> Children (RT a)
 handleChilds !k !v m c =
   case c of
-    (N2 l r)
-        | zero k m -> N2 (insert k v l) r
-        | otherwise -> N2 l (insert k v r)
-    (N4 arr) -> N4 $ arr // [(rm, insert k v rt)]
-          where rt = arr ! rm
-                rm = reduceMask k m
+    (NB l r)
+        | zero k m -> NB (insert k v l) r
+        | otherwise -> NB l (insert k v r)
+    (N2B z f s t) -> case rm of
+                      Z -> N2B (insert k v z) f s t
+                      F -> N2B z (insert k v f) s t
+                      S -> N2B z f (insert k v s) t
+                      T -> N2B z f s (insert k v t)
+                    where rm = reduceMask k m
 
-reduceMask :: Timestamp -> Mask -> Word8
+reduceMask :: Timestamp -> Mask -> B2
 reduceMask t m
-  | m - masked == m  = 0
-  | m - masked == 0  = 3
-  | m - masked == shiftL masked 1 = 1
-  | otherwise = 2
+  | m - masked == m  = Z
+  | m - masked == 0  = T
+  | m - masked == shiftL masked 1 = F
+  | otherwise = S
     where masked = t .&. m
 
 
 a = [(x, "40") | x <- [1613303665..1613819332]]
+y = [(x, "40") | x <- [0..2]]
 
 x = foldl' (\rt (t, v) -> insert t v rt) empty a
 

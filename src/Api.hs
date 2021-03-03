@@ -17,7 +17,6 @@ import           Data.Aeson                 (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8 as C
 import           Data.Functor
 import           Data.IntMap                as IM
-import           Debug.Trace
 import           GHC.Generics
 import           Network.Wai
 import           Network.Wai.Handler.Warp
@@ -28,8 +27,6 @@ import           Aggregates
 import           Repository.Handlers
 import           Repository.Model
 import           Repository.Utils
-
-debug = flip trace
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT

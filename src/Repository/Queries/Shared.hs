@@ -4,11 +4,11 @@ import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
 import           Aggregates
+import qualified Data.Map.Strict      as M
 import qualified DataS.IntMap         as IM
-import qualified DataS.Map            as M
 import           Repository.Model
 
-qmToF :: QueryModel -> (IM.IntMap TagMap -> IM.IntMap TagMap)
+qmToF :: QueryModel -> (TimestampIndex -> TimestampIndex)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.lookupGLT' False False gt lt
 qmToF Q {gt = (Just gt), le = (Just le)} = IM.lookupGLT' False True gt le
 qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.lookupGLT' True False ge lt

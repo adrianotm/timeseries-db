@@ -47,6 +47,8 @@ dependencies:
   - transformers
   - dlist
   - scientific
+  - hashable
+  - conduit
 
 library:
   source-dirs: src

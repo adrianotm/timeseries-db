@@ -36,6 +36,4 @@ query = ask
             (Just MinAgg) ->  aggF qm getMin (Min . value) <&> either toAggR (toAggRG getMin)
             (Just MaxAgg) ->  aggF qm getMax (Max . value) <&> either toAggR (toAggRG getMax)
             (Just IllegalAgg) -> throwE "Illegal aggregation function"
-            Nothing -> (case qmToQT qm of
-                         TSQuery    -> aggF qm getCollList toCollect <&> toCollR . fromLeft []
-                         TagQuery _ -> aggF qm getOrdList toOrdCollect <&> toCollR . fromLeft [])
+            Nothing -> aggF qm getCollList toCollect <&> toCollR . fromLeft []

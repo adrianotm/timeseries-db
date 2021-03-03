@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5df7c5c8cd6925d71a31c6490ff91f69c17b60973fc3735b926c989ce96fdecd
+-- hash: 34ae5c1f7d804591fa0c633e31dbe118c2931497c9b70587af7a961c0978057f
 
 name:           diplomska
 version:        0.1.0.0
@@ -29,8 +29,8 @@ library
       Aggregates
       Api
       App
+      DataS.HashMap
       DataS.IntMap
-      DataS.Map
       Repository.Handlers
       Repository.Model
       Repository.Queries
@@ -53,9 +53,11 @@ library
     , blaze-html
     , blaze-markup
     , bytestring
+    , conduit
     , containers
     , directory
     , dlist
+    , hashable
     , http-media
     , lens
     , lucid
@@ -91,10 +93,12 @@ executable diplomska-exe
     , blaze-html
     , blaze-markup
     , bytestring
+    , conduit
     , containers
     , diplomska
     , directory
     , dlist
+    , hashable
     , http-media
     , lens
     , lucid
@@ -131,10 +135,12 @@ test-suite diplomska-test
     , blaze-html
     , blaze-markup
     , bytestring
+    , conduit
     , containers
     , diplomska
     , directory
     , dlist
+    , hashable
     , hspec
     , hspec-wai
     , hspec-wai-json

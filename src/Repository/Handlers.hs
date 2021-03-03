@@ -22,8 +22,8 @@ import           Data.Functor
 import           Data.Maybe
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
+import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
-import qualified DataS.Map                 as M
 
 import           Aggregates
 import           Repository.Model
@@ -40,11 +40,9 @@ insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get
                  case validInsert db ts of
                    [] -> let startIx = V.length _data' in
-                                 put (TimeseriesDB (evalState (IM.foldIx ts f _tIx) startIx)
-                                                   (evalState (M.foldIx ts z _sIx) startIx)
+                                 put (TimeseriesDB (tIxAppendTS ts _tIx startIx)
+                                                   (sIxAppendTS ts _sIx startIx)
                                                    (_data' V.++ V.fromList ts)) $> []
-                                where f tss = (timestamp tss, tag tss)
-                                      z = tag
                    errors -> return errors
 
 filterTS :: QueryModel
@@ -52,7 +50,7 @@ filterTS :: QueryModel
 filterTS qm@Q{..} = ask <&> runReader (runExceptT query) . InternalQ qm
 
 clearTS :: Update TimeseriesDB ()
-clearTS = put $ TimeseriesDB IM.empty M.empty V.empty
+clearTS = put $ TimeseriesDB IM.empty HM.empty V.empty
 
 allTimestamps :: Bool -> Query TimeseriesDB (Either Error [Timestamp])
 allTimestamps bounded = ask <&> \db ->
@@ -63,6 +61,6 @@ allTimestamps bounded = ask <&> \db ->
                                     else Right $ IM.keys $ _tIx db
 
 allTags :: Query TimeseriesDB [Tag]
-allTags = ask <&> M.keys . _sIx
+allTags = ask <&> HM.keys . _sIx
 
 makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS, 'allTimestamps, 'allTags]

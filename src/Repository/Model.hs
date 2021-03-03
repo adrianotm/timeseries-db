@@ -32,8 +32,11 @@ import           Data.Aeson.TH        (defaultOptions, deriveFromJSON,
                                        deriveJSON, rejectUnknownFields)
 import qualified Data.DList           as DL
 import           Data.Functor
+import           Data.Hashable        (Hashable)
 import qualified Data.HashMap.Strict  as HM
+import qualified Data.IntMap          as IM
 import           Data.List            (intercalate)
+import qualified Data.Map             as M
 import           Data.Maybe           (isJust, mapMaybe)
 import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
                                        getCopy, putCopy, safeGet, safePut)
@@ -42,8 +45,6 @@ import qualified Data.Set             as S
 import           Data.Text            (Text, unpack)
 import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V
-import qualified DataS.IntMap         as IM
-import qualified DataS.Map            as M
 import           GHC.Generics
 
 type Timestamp = Int
@@ -51,7 +52,7 @@ type Val = Float
 type Ix = Int
 
 newtype Tag = Tag (Either String Int)
-    deriving (Eq, Ord)
+    deriving (Eq, Ord, Hashable, Generic)
 
 instance Show Tag where
     show (Tag t) = either show show t
@@ -93,10 +94,11 @@ instance Eq TS where
 instance Ord TS where
     compare (TS t1 _ _) (TS t2 _ _) = compare t1 t2
 
-type TagMap = M.Map Tag Ix
+type TimestampIndex = IM.IntMap (HM.HashMap Tag Ix)
+type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
-data TimeseriesDB = TimeseriesDB { _tIx   :: IM.IntMap TagMap, -- composite timestamp/tag index
-                                   _sIx   :: M.Map Tag (DL.DList Ix), -- composite tag index
+data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex, -- composite timestamp/tag index
+                                   _sIx   :: TagIndex, -- composite tag index
                                    _data' :: V.Vector TS } -- all data
 
 data QueryModel = Q { gt      :: Maybe Timestamp
@@ -115,6 +117,10 @@ emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 instance (Typeable a,SafeCopy a) => SafeCopy (DL.DList a) where
     getCopy = contain $ fmap DL.fromList safeGet
     putCopy = contain . safePut . DL.toList
+
+instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => SafeCopy (HM.HashMap k v) where
+    getCopy = contain $ fmap HM.fromList safeGet
+    putCopy = contain . safePut . HM.toList
 
 instance Bounded Float where
     { minBound = -1/0; maxBound = 1/0 }

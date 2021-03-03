@@ -2,6 +2,9 @@ module DataS.IntMap
    ( module DataS.IntMap
    , IM.IntMap
    , IM.foldrWithKey
+   , IM.union
+   , IM.unionWith
+   , IM.fromList
    , IM.lookup
    , IM.empty
    , IM.insertWith
@@ -12,9 +15,10 @@ module DataS.IntMap
    ) where
 
 import           Control.Monad.State
+import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal
 import qualified Data.IntMap.Strict   as IM
-import qualified Data.Map.Strict      as M
+import           Repository.Model
 
 
 --- Bool - return the equal key
@@ -59,14 +63,6 @@ lookupGLT' re1 re2 k1 k2 im =
        | k1 < ky && re2 && k2 == ky -> t
        | otherwise -> Nil
      Nil -> Nil
-
-insertWithIx :: Ord a => Key -> a -> IM.IntMap (M.Map a Int) -> State Int (IM.IntMap (M.Map a Int))
-insertWithIx k s im = do ix <- get
-                         put $ ix + 1
-                         return $ IM.insertWith M.union k (M.fromList [(s, ix)]) im
-
-foldIx :: Ord a => [b] -> (b -> (Key, a)) -> IM.IntMap (M.Map a Int) -> State Int (IM.IntMap (M.Map a Int))
-foldIx ls f im = foldM (\acc b -> let (key, s) = f b in insertWithIx key s acc) im ls
 
 foldMapWithKey' :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey' f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty

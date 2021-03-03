@@ -5,7 +5,7 @@ import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except
 import           Data.Foldable
 import qualified Data.Vector                as V
-import qualified DataS.Map                  as M
+import qualified DataS.HashMap              as HM
 
 import           Aggregates
 import           Repository.Model
@@ -20,7 +20,7 @@ aggTag :: Monoid m =>
     -> (TS -> m)
     -> ExceptQ (AggRes a m)
 aggTag tag get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
-                              -> case M.lookup tag _sIx of
+                              -> case HM.lookup tag _sIx of
                                  Nothing  -> throwE $ noDataErr tag
                                  (Just dl) -> case groupBy of
                                                (Just GByTag) -> return $ toTagAggR $! foldMap' (toGroup tag . to . (V.!) _data') dl
