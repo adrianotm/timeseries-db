@@ -35,7 +35,7 @@ validInsert :: TimeseriesDB -> [TS] -> [Error]
 validInsert TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> const (Just $ errMsgInsert ts) =<< IM.lookup timestamp =<< HM.lookup tag _sIx)
 
 illegalQM :: QueryModel -> (Bool, String)
-illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
+illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _) _) = (True, "Only 'group' provided.")
 illegalQM Q {gt = (Just _), ge = (Just _)}          = (True, "Can't query 'gt' and 'ge' at the same time.")
 illegalQM Q {lt = (Just _), le = (Just _)}          = (True, "Can't query 'lt' and 'le' at the same time.")
 illegalQM Q {tsEq = (Just _), gt = (Just _)}        = (True, "Can't query 'tsEq' with any other timestamp condition.")

@@ -66,10 +66,13 @@ instance ToJSON Tag where
     toJSON (Tag t) = either toJSON toJSON t
     toEncoding (Tag t) = either toEncoding toEncoding t
 
-data GroupBy = GByTimestemp | GByTag | IllegalGBy
+data GroupBy = GByTimestemp | GByTag
     deriving (Show)
 
-data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg | IllegalAgg
+data Sort = Asc | Desc
+    deriving (Show)
+
+data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg
         deriving (Show, Generic)
 
 type ExceptionQuery = ExceptT String (Query TimeseriesDB)
@@ -103,10 +106,11 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , tagEq   :: Maybe Tag
                     , aggFunc :: Maybe Agg
                     , groupBy :: Maybe GroupBy
+                    , sort    :: Maybe Sort
                     }
         deriving (Generic, Show)
 
-emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance (SafeCopy a, Typeable a) => SafeCopy (DL.DList a) where
     getCopy = contain $ fmap DL.fromList safeGet
@@ -127,7 +131,12 @@ instance ToJSON QueryR where
 instance FromJSON GroupBy where
     parseJSON (String "timestamp") = return GByTimestemp
     parseJSON (String "tag")       = return GByTag
-    parseJSON _                    = return IllegalGBy
+    parseJSON _                    = fail "Illegal groupBy"
+
+instance FromJSON Sort where
+    parseJSON (String "asc")  = return Asc
+    parseJSON (String "desc") = return Desc
+    parseJSON _               = fail "Illegal sort."
 
 instance FromJSON Agg where
     parseJSON (String "avg")   = return AvgAgg
@@ -135,7 +144,7 @@ instance FromJSON Agg where
     parseJSON (String "count") = return CountAgg
     parseJSON (String "min")   = return MinAgg
     parseJSON (String "max")   = return MaxAgg
-    parseJSON _                = return IllegalAgg
+    parseJSON _                = fail "Illegal aggFunc."
 
 instance ToJSON GroupAggR where
     toJSON (GroupAggR (Left tg) res) =
@@ -159,5 +168,6 @@ deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''Agg
 deriveSafeCopy 0 'base ''GroupBy
+deriveSafeCopy 0 'base ''Sort
 deriveSafeCopy 0 'base ''QueryModel
 deriveSafeCopy 0 'base ''TimeseriesDB

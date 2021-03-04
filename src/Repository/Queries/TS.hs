@@ -14,13 +14,6 @@ import           Aggregates
 import           Repository.Model
 import           Repository.Queries.Shared
 
-mapToM :: (Monoid m) =>
-  (TS -> m)
-  -> V.Vector TS
-  -> DL.DList Ix
-  -> m
-mapToM toM d = foldMap' (toM . (V.!) d)
-
 mapToMG :: (Monoid v) =>
   (TS -> v)
   -> V.Vector TS
@@ -36,9 +29,8 @@ queryTS' get to = ask
                   >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
                           (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to _data' $!) (qmToF qm  _tIx)
-                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to _data') (qmToF qm _tIx)
-                          (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to _data' $!) (qmToF qm _tIx)
+                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' sort (\k -> toGroup k . foldMap' (to . (V.!) _data')) (qmToF qm _tIx)
+                          Nothing -> return $ toCollAggR $ get $! IM.foldMap' sort (foldMap' (to . (V.!) _data')) (qmToF qm _tIx)
 
 queryTS :: (Monoid v) =>
         (v -> a)
@@ -52,7 +44,6 @@ queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                                       Nothing -> throwE "Timestamp not found."
                                       (Just m)
                                          -> case groupBy of
-                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) _data' m
+                                              (Just GByTimestemp) -> return $ toTSAggR $! foldMap' (toGroup ts . to . (V.!) _data') m
                                               (Just GByTag) -> throwE "Can't use 'groupBy = tag' with 'tsEq'."
-                                              (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                                              Nothing -> return $ toCollAggR $ get $! mapToM to _data' m
+                                              Nothing -> return $ toCollAggR $ get $! foldMap' (to . (V.!) _data') m

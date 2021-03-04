@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module DataS.IntMap
    ( module DataS.IntMap
    , IM.IntMap
@@ -15,6 +16,7 @@ module DataS.IntMap
    ) where
 
 import           Control.Monad.State
+import           Data.Foldable
 import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal
 import qualified Data.IntMap.Strict   as IM
@@ -64,5 +66,31 @@ lookupGLT' re1 re2 k1 k2 im =
        | otherwise -> Nil
      Nil -> Nil
 
-foldMapWithKey' :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
-foldMapWithKey' f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty
+foldlDesc' :: (a -> b -> a) -> a -> IM.IntMap b -> a
+foldlDesc' f z = \t ->
+  case t of
+    Bin _ m l r -> go (go z r) l
+    _           -> go z t
+  where
+    go !z' Nil          = z'
+    go z' (Tip _ x)     = f z' x
+    go z' (Bin _ _ l r) = go (go z' r) l
+
+foldlWithKeyDesc' :: (a -> Key -> b -> a) -> a -> IM.IntMap b -> a
+foldlWithKeyDesc' f z = \t ->
+  case t of
+    Bin _ m l r -> go (go z r) l
+    _           -> go z t
+  where
+    go !z' Nil          = z'
+    go z' (Tip kx x)    = f z' kx x
+    go z' (Bin _ _ l r) = go (go z' r) l
+
+foldMap' :: Monoid m => Maybe Sort -> (a -> m) -> IM.IntMap a -> m
+foldMap' (Just Desc) f = foldlDesc' (\acc a -> acc <> f a) mempty
+foldMap' _  f          = Data.Foldable.foldMap' f
+
+foldMapWithKey' :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
+foldMapWithKey' sort f  = fwk sort (\acc k v -> acc <> f k v) mempty
+  where fwk (Just Desc) = foldlWithKeyDesc'
+        fwk _           = IM.foldlWithKey'

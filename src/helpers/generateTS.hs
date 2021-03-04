@@ -5,12 +5,12 @@ import           Data.Time.Clock.POSIX
 import           Repository.Model
 
 getTag :: Int -> Tag
-getTag i = if even i then Tag $ Left "adrian"
-                     else Tag $ Left "cholak"
+getTag i = if even i then Tag $ Left "drop"
+                     else Tag $ Left "adrian"
 
 generateTS :: IO [TS]
 generateTS = do now <- getPOSIXTime
-                return [TS (round (100 + fromIntegral i)) (getTag i) 66 | i <- [0..1000]]
+                return [TS (round (0 + fromIntegral i)) (getTag i) 66 | i <- [0..1000]]
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS

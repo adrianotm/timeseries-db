@@ -4,6 +4,7 @@ import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
 import           Aggregates
+import qualified Data.DList           as DL
 import qualified Data.Map.Strict      as M
 import qualified DataS.IntMap         as IM
 import           Repository.Model
@@ -40,9 +41,12 @@ toTagAggR = Right . Left . getGroup
 toTSAggR :: Group Timestamp v -> AggRes a v
 toTSAggR = Right . Right . getGroup
 
-toAggRG :: Semigroup v => (v -> Val) -> Either (M.Map Tag v) (M.Map Timestamp v) -> QueryR
-toAggRG f m = QR $ Right $ Left $ either (trans Left) (trans Right) m
-    where trans keyF = M.foldrWithKey' (\k v -> (:) (GroupAggR (keyF k) $ f v)) []
+toAggRG :: Semigroup v => (v -> Val) -> Maybe Sort -> Either (M.Map Tag v) (M.Map Timestamp v) -> QueryR
+toAggRG f sort m = QR $ Right $ Left $ either (trans Left) (trans Right) m
+    where trans keyF m = DL.toList $
+                    M.foldlWithKey' (\acc k v -> conc sort acc (GroupAggR (keyF k) (f v))) DL.empty m
+          conc (Just Desc) acc v = DL.cons v acc
+          conc _ acc v           = DL.snoc acc v
 
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just t)} = TagQuery t
