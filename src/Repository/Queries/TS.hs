@@ -3,6 +3,7 @@ module Repository.Queries.TS where
 
 import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except
+import           Data.DList                 as DL
 import           Data.Foldable
 import qualified Data.Map.Strict            as M
 import qualified Data.Vector                as V
@@ -15,45 +16,43 @@ import           Repository.Queries.Shared
 
 mapToM :: (Monoid m) =>
   (TS -> m)
-  -> Maybe Tag
   -> V.Vector TS
-  -> HM.HashMap Tag Ix
+  -> DL.DList Ix
   -> m
-mapToM toM Nothing d m   = foldMap' (toM . (V.!) d) m
-mapToM toM (Just tg) d m = maybe mempty (toM . (V.!) d) (HM.lookup tg m)
+mapToM toM d = foldMap' (toM . (V.!) d)
 
 mapToMG :: (Monoid v) =>
   (TS -> v)
   -> V.Vector TS
-  -> HM.HashMap Tag Ix
+  -> DL.DList Ix
   -> Group Tag v
-mapToMG toM d = HM.foldMapWithKey' (\k -> toGroup k . toM . (V.!) d)
+mapToMG toM d = foldMap' (\ix -> let ts@TS{..} = (V.!) d ix in toGroup tag $ toM ts)
 
-aggTS' :: (Monoid v) =>
+queryTS' :: (Monoid v) =>
            (v -> a)
         -> (TS -> v)
         -> ExceptQ (AggRes a v)
-aggTS' get to = ask
+queryTS' get to = ask
                   >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
                           (Just GByTag) -> return $ toTagAggR $! foldMap' (mapToMG to _data' $!) (qmToF qm  _tIx)
-                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k v -> toGroup k $ mapToM to tagEq _data' $! v) (qmToF qm _tIx)
+                          (Just GByTimestemp) -> return $ toTSAggR $! IM.foldMapWithKey' (\k -> toGroup k . mapToM to _data') (qmToF qm _tIx)
                           (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to tagEq _data' $!) (qmToF qm _tIx)
+                          Nothing -> return $ toCollAggR $ get $! foldMap' (mapToM to _data' $!) (qmToF qm _tIx)
 
-aggTS :: (Monoid v) =>
+queryTS :: (Monoid v) =>
         (v -> a)
         -> (TS -> v)
         -> ExceptQ (AggRes a v)
-aggTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
+queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                          -> case tsEq of
-                             Nothing -> aggTS' get to
+                             Nothing -> queryTS' get to
                              (Just ts)
                                 -> case IM.lookup ts _tIx of
-                                      Nothing -> throwE "Timestamp not found"
+                                      Nothing -> throwE "Timestamp not found."
                                       (Just m)
                                          -> case groupBy of
-                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) Nothing _data' m
+                                              (Just GByTimestemp) -> return $ toTSAggR $! mapToM (toGroup ts . to) _data' m
                                               (Just GByTag) -> throwE "Can't use 'groupBy = tag' with 'tsEq'."
                                               (Just IllegalGBy) -> throwE "Illegal 'groupBy' field."
-                                              Nothing -> return $ toCollAggR $ get $! mapToM to tagEq _data' m
+                                              Nothing -> return $ toCollAggR $ get $! mapToM to _data' m

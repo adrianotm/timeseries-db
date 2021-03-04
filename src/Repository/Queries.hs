@@ -12,28 +12,30 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Semigroup
 import           Repository.Model
-import           Repository.Queries.General
 import           Repository.Queries.Shared
 import           Repository.Queries.Tag
 import           Repository.Queries.TS
 
 import           Aggregates
+import           Debug.Trace
 
-aggF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
-aggF qm = case qmToQT qm of
-                TSQuery    -> aggTS
-                TagQuery t -> aggTag t
+debug = flip trace
+
+queryF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
+queryF qm = case qmToQT qm of
+                TSQuery    -> queryTS `debug` "TS"
+                TagQuery t -> queryTag t `debug` "TAG"
 
 query :: ExceptQ QueryR
 query = ask
     >>= \InternalQ{qm=qm@Q{..}}
         -> case aggFunc of
-            (Just AvgAgg) -> aggF qm getAverage (toAvg . value) >>=
+            (Just AvgAgg) -> queryF qm getAverage (toAvg . value) >>=
                                         either (handleAgg "Average failed")
                                                (return . toAggRG (fromMaybe 0 . getAverage))
-            (Just SumAgg) ->  aggF qm getSum (Sum . value) <&> either toAggR (toAggRG getSum)
-            (Just CountAgg) ->  aggF qm getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
-            (Just MinAgg) ->  aggF qm getMin (Min . value) <&> either toAggR (toAggRG getMin)
-            (Just MaxAgg) ->  aggF qm getMax (Max . value) <&> either toAggR (toAggRG getMax)
+            (Just SumAgg) ->  queryF qm getSum (Sum . value) <&> either toAggR (toAggRG getSum)
+            (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum)
+            (Just MinAgg) ->  queryF qm getMin (Min . value) <&> either toAggR (toAggRG getMin)
+            (Just MaxAgg) ->  queryF qm getMax (Max . value) <&> either toAggR (toAggRG getMax)
             (Just IllegalAgg) -> throwE "Illegal aggregation function"
-            Nothing -> aggF qm getCollList toCollect <&> toCollR . fromLeft []
+            Nothing -> queryF qm getCollList toCollect <&> toCollR . fromLeft []

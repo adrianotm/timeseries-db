@@ -8,7 +8,7 @@ import qualified Data.Map.Strict      as M
 import qualified DataS.IntMap         as IM
 import           Repository.Model
 
-qmToF :: QueryModel -> (TimestampIndex -> TimestampIndex)
+qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.lookupGLT' False False gt lt
 qmToF Q {gt = (Just gt), le = (Just le)} = IM.lookupGLT' False True gt le
 qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.lookupGLT' True False ge lt
@@ -45,10 +45,5 @@ toAggRG f m = QR $ Right $ Left $ either (trans Left) (trans Right) m
     where trans keyF = M.foldrWithKey' (\k v -> (:) (GroupAggR (keyF k) $ f v)) []
 
 qmToQT :: QueryModel -> QueryType
-qmToQT Q {lt = (Just t)}    = TSQuery
-qmToQT Q {le = (Just t)}    = TSQuery
-qmToQT Q {gt = (Just t)}    = TSQuery
-qmToQT Q {ge = (Just t)}    = TSQuery
-qmToQT Q {tsEq = (Just t)}  = TSQuery
 qmToQT Q {tagEq = (Just t)} = TagQuery t
 qmToQT _                    = TSQuery

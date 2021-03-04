@@ -88,13 +88,7 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
     deriving (Show,Generic)
 
-instance Eq TS where
-    (TS t1 _ _) == (TS t2 _ _) = t1 == t2
-
-instance Ord TS where
-    compare (TS t1 _ _) (TS t2 _ _) = compare t1 t2
-
-type TimestampIndex = IM.IntMap (HM.HashMap Tag Ix)
+type TimestampIndex = IM.IntMap (DL.DList Ix)
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
 data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex, -- composite timestamp/tag index
@@ -114,7 +108,7 @@ data QueryModel = Q { gt      :: Maybe Timestamp
 
 emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
-instance (Typeable a,SafeCopy a) => SafeCopy (DL.DList a) where
+instance (SafeCopy a, Typeable a) => SafeCopy (DL.DList a) where
     getCopy = contain $ fmap DL.fromList safeGet
     putCopy = contain . safePut . DL.toList
 

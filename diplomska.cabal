@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 34ae5c1f7d804591fa0c633e31dbe118c2931497c9b70587af7a961c0978057f
+-- hash: d04f4468427b27f1e923fcd08be21bbc9700c65c5931dad9fb211dd9c16da460
 
 name:           diplomska
 version:        0.1.0.0
@@ -34,7 +34,6 @@ library
       Repository.Handlers
       Repository.Model
       Repository.Queries
-      Repository.Queries.General
       Repository.Queries.Shared
       Repository.Queries.Tag
       Repository.Queries.TS

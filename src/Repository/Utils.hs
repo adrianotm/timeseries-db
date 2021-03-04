@@ -5,6 +5,7 @@ module Repository.Utils where
 import           Control.Monad
 import           Data.Conduit
 import           Data.Conduit.Combinators  as CC
+import           Data.DList                as DL
 import           Data.Maybe                (mapMaybe)
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
@@ -19,7 +20,7 @@ import           Repository.Queries.Shared
 type Error = String
 
 unsafeIndexOf :: TS -> TimeseriesDB -> Ix
-unsafeIndexOf TS{..} TimeseriesDB{..} = (_tIx IM.! timestamp) HM.! tag
+unsafeIndexOf TS{..} TimeseriesDB{..} = (_sIx HM.! tag) IM.! timestamp
 
 errMsgUpdate :: TS -> Error
 errMsgUpdate TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " not found."
@@ -28,10 +29,10 @@ errMsgInsert :: TS -> Error
 errMsgInsert TS{..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " already exists."
 
 validUpdate :: TimeseriesDB -> [TS] -> [Error]
-validUpdate TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> maybe (Just $ errMsgUpdate ts) (const Nothing) (HM.lookup tag =<< IM.lookup timestamp _tIx))
+validUpdate TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> maybe (Just $ errMsgUpdate ts) (const Nothing) (IM.lookup timestamp =<< HM.lookup tag _sIx))
 
 validInsert :: TimeseriesDB -> [TS] -> [Error]
-validInsert TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> const (Just $ errMsgInsert ts) =<< HM.lookup tag =<< IM.lookup timestamp _tIx)
+validInsert TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> const (Just $ errMsgInsert ts) =<< IM.lookup timestamp =<< HM.lookup tag _sIx)
 
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM (Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing (Just _)) = (True, "Only 'group' provided.")
@@ -45,8 +46,8 @@ illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'a
 illegalQM _                                         = (False, "")
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
-tIxAppendTS ts im ix = IM.unionWith HM.union im appendIM
-  where appendIM = IM.fromList $ [(timestamp, HM.fromList [(tag, i)]) | TS{..} <- ts | i <- [ix..]]
+tIxAppendTS ts im ix = IM.unionWith DL.append im appendIM
+  where appendIM = IM.fromList $ [(timestamp, DL.singleton i) | TS{..} <- ts | i <- [ix..]]
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
 sIxAppendTS ts m ix = HM.unionWith IM.union m appendIM
