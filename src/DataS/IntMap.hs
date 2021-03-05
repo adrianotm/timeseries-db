@@ -11,7 +11,6 @@ module DataS.IntMap
    , IM.keys
    , IM.lookupMax
    , IM.lookupMin
-   , IM.foldMapWithKey
    , (IM.!)
    ) where
 
