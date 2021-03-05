@@ -50,6 +50,7 @@ import           GHC.Generics
 type Timestamp = Int
 type Val = Float
 type Ix = Int
+type Limit = Int
 
 newtype Tag = Tag (Either String Int)
     deriving (Eq, Ord, Hashable, Generic)
@@ -66,7 +67,7 @@ instance ToJSON Tag where
     toJSON (Tag t) = either toJSON toJSON t
     toEncoding (Tag t) = either toEncoding toEncoding t
 
-data GroupBy = GByTimestemp | GByTag
+data GroupBy = GByTimestamp | GByTag
     deriving (Show)
 
 data Sort = Asc | Desc
@@ -107,10 +108,11 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , aggFunc :: Maybe Agg
                     , groupBy :: Maybe GroupBy
                     , sort    :: Maybe Sort
+                    , limit   :: Maybe Limit
                     }
         deriving (Generic, Show)
 
-emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance (SafeCopy a, Typeable a) => SafeCopy (DL.DList a) where
     getCopy = contain $ fmap DL.fromList safeGet
@@ -123,13 +125,12 @@ instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => S
 instance Bounded Float where
     { minBound = -1/0; maxBound = 1/0 }
 
-
 instance ToJSON QueryR where
     toJSON (QR qr) = either toJSON (either toJSON toJSON) qr
     toEncoding (QR qr) = either toEncoding (either toEncoding toEncoding) qr
 
 instance FromJSON GroupBy where
-    parseJSON (String "timestamp") = return GByTimestemp
+    parseJSON (String "timestamp") = return GByTimestamp
     parseJSON (String "tag")       = return GByTag
     parseJSON _                    = fail "Illegal groupBy"
 

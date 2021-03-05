@@ -17,12 +17,11 @@ import           Repository.Queries.Tag
 import           Repository.Queries.TS
 
 import           Aggregates
-import           Debug.Trace
 
 queryF :: Monoid m => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of
-                TSQuery    -> queryTS
-                TagQuery t -> queryTag t
+                TSQuery  -> queryTS
+                TagQuery -> queryTag
 
 query :: ExceptQ QueryR
 query = ask
@@ -30,9 +29,9 @@ query = ask
         -> case aggFunc of
             (Just AvgAgg) -> queryF qm getAverage (toAvg . value) >>=
                                         either (handleAgg "Average failed")
-                                               (return . toAggRG (fromMaybe 0 . getAverage) sort)
-            (Just SumAgg) ->  queryF qm getSum (Sum . value) <&> either toAggR (toAggRG getSum sort)
-            (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum sort)
-            (Just MinAgg) ->  queryF qm getMin (Min . value) <&> either toAggR (toAggRG getMin sort)
-            (Just MaxAgg) ->  queryF qm getMax (Max . value) <&> either toAggR (toAggRG getMax sort)
-            Nothing -> queryF qm getCollList toCollect <&> toCollR . fromLeft []
+                                               (return . toAggRG (fromMaybe 0 . getAverage) limit)
+            (Just SumAgg) ->  queryF qm getSum (Sum . value) <&> either toAggR (toAggRG getSum limit)
+            (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum limit)
+            (Just MinAgg) ->  queryF qm getMin (Min . value) <&> either toAggR (toAggRG getMin limit)
+            (Just MaxAgg) ->  queryF qm getMax (Max . value) <&> either toAggR (toAggRG getMax limit)
+            Nothing -> queryF qm getCollList toCollect <&> toCollR . maybe id take limit . fromLeft []

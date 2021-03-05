@@ -10,7 +10,7 @@ getTag i = if even i then Tag $ Left "drop"
 
 generateTS :: IO [TS]
 generateTS = do now <- getPOSIXTime
-                return [TS (round (0 + fromIntegral i)) (getTag i) 66 | i <- [0..1000]]
+                return [TS (round (1000 + fromIntegral i)) (getTag i) 66 | i <- [0..300000]]
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS
