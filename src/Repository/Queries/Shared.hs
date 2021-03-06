@@ -7,6 +7,7 @@ import           Aggregates
 import qualified Data.DList           as DL
 import           Data.Foldable
 import qualified Data.Map.Strict      as M
+import qualified Data.Vector          as V
 import qualified DataS.IntMap         as IM
 import           Repository.Model
 
@@ -32,6 +33,13 @@ type ExceptQ = ExceptT String (Reader InternalQ)
 type GroupEither v = Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v))
 
 type AggRes a v = Either a (GroupEither v)
+
+noDataErr :: Either Tag Timestamp -> String
+noDataErr (Left tg)  = "No data for tag " ++ show tg
+noDataErr (Right ts) = "No data for timestamp " ++ show ts
+
+getTS :: V.Vector TS -> Ix -> TS
+getTS = (V.!)
 
 toCollAggR :: a -> AggRes a v
 toCollAggR = Left

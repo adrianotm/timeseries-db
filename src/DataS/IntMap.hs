@@ -1,12 +1,16 @@
 module DataS.IntMap
    ( module DataS.IntMap
    , IM.IntMap
+   , IM.empty
+   , IM.singleton
    , IM.foldrWithKey
+   , IM.differenceWith
+   , IM.difference
    , IM.union
    , IM.unionWith
    , IM.fromList
+   , IM.fromListWith
    , IM.lookup
-   , IM.empty
    , IM.insertWith
    , IM.keys
    , IM.lookupMax

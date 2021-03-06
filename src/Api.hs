@@ -36,7 +36,7 @@ type TimeseriesApi =
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
    :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
    :<|> Get '[JSON] [TS]
-   :<|> Delete '[PlainText] NoContent
+   :<|> ReqBody '[JSON] [DTS] :> Delete '[JSON] ()
    :<|> "timestamps" :> QueryFlag "bounded" :> Get '[JSON] [Timestamp]
    :<|> "tags" :> Get '[JSON] [Tag]
 
@@ -53,15 +53,18 @@ insertData ts = ask >>= flip update' (InsertTS ts)
 
 updateData :: [TS] -> AcidReaderT ()
 updateData ts = ask >>= flip update' (UpdateTS ts)
-                        >>= \case
-                               [] -> return ()
-                               errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
+                           >>= \case
+                                  [] -> return ()
+                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
+
+deleteData :: [DTS] -> AcidReaderT ()
+deleteData dts = ask >>= flip update' (ClearTS dts)
+                           >>= \case
+                                  [] -> return ()
+                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
 
 getData :: AcidReaderT [TS]
 getData = queryData emptyQM >>= \(QR r) -> either return (const $ throwError err500) r
-
-clearData :: AcidReaderT NoContent
-clearData = (ask >>= flip update' ClearTS) $> NoContent
 
 queryData :: QueryModel
            -> AcidReaderT QueryR
@@ -82,7 +85,7 @@ tsHandlers = insertData
         :<|> updateData
         :<|> queryData
         :<|> getData
-        :<|> clearData
+        :<|> deleteData
         :<|> timestamps
         :<|> tags
 

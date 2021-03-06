@@ -29,13 +29,13 @@ import           Data.Aeson           (FromJSON, Object, ToJSON,
                                        parseJSON, toEncoding, toJSON,
                                        withObject, (.!=), (.:), (.:?), (.=))
 import           Data.Aeson.TH        (defaultOptions, deriveFromJSON,
-                                       deriveJSON, rejectUnknownFields)
+                                       deriveJSON, fieldLabelModifier,
+                                       rejectUnknownFields)
 import qualified Data.DList           as DL
 import           Data.Functor
 import           Data.Hashable        (Hashable)
 import qualified Data.HashMap.Strict  as HM
 import qualified Data.IntMap          as IM
-import           Data.List            (intercalate)
 import qualified Data.Map             as M
 import           Data.Maybe           (isJust, mapMaybe)
 import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
@@ -90,7 +90,10 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
 data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
-    deriving (Show,Generic)
+    deriving (Show, Generic)
+
+data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
+    deriving (Show, Generic)
 
 type TimestampIndex = IM.IntMap (DL.DList Ix)
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
@@ -159,6 +162,7 @@ instance ToJSON GroupAggR where
 
 makeLenses ''TimeseriesDB
 
+$(deriveJSON defaultOptions{fieldLabelModifier = drop 2} ''DTS)
 $(deriveJSON defaultOptions{rejectUnknownFields = True} ''TS)
 $(deriveFromJSON defaultOptions{rejectUnknownFields = True} ''QueryModel)
 
@@ -166,6 +170,7 @@ deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''Tag
 deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
+deriveSafeCopy 0 'base ''DTS
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''Agg
 deriveSafeCopy 0 'base ''GroupBy

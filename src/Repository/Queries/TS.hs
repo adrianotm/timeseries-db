@@ -22,8 +22,8 @@ queryTS' :: (Monoid v) =>
 queryTS' get to = ask
                   >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                       -> case groupBy of
-                          (Just GByTimestamp) -> return $ toTSAggR $ IM.foldMapWithKey' sort (\k v -> toCollect (k, foldMap' (to . (V.!) _data') v)) (qmToF qm _tIx)
-                          _ -> return $ toCollAggR $ get $ IM.foldMap' sort (foldMap' (to . (V.!) _data')) (qmToF qm _tIx)
+                          (Just GByTimestamp) -> return $ toTSAggR $ IM.foldMapWithKey' sort (\k v -> toCollect (k, foldMap' (to . getTS _data') v)) (qmToF qm _tIx)
+                          _ -> return $ toCollAggR $ get $ IM.foldMap' sort (foldMap' (to . getTS _data')) (qmToF qm _tIx)
 
 queryTS :: (Monoid v) =>
         (v -> a)
@@ -34,8 +34,8 @@ queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                              Nothing -> queryTS' get to
                              (Just ts)
                                 -> case IM.lookup ts _tIx of
-                                      Nothing -> throwE "Timestamp not found."
+                                      Nothing -> throwE $ noDataErr (Right ts)
                                       (Just dl)
                                          -> case groupBy of
-                                              (Just GByTimestamp) -> return $ toTSAggR $ toCollect (ts, foldMap' (to . (V.!) _data') dl)
-                                              _ -> return $ toCollAggR $ get $ foldMap' (to . (V.!) _data') dl
+                                              (Just GByTimestamp) -> return $ toTSAggR $ toCollect (ts, foldMap' (to . getTS _data') dl)
+                                              _ -> return $ toCollAggR $ get $ foldMap' (to . getTS _data') dl

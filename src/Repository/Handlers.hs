@@ -33,7 +33,9 @@ import           Repository.Utils
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts = get >>= \db -> case validUpdate db ts of
-                               [] -> put (db & data' %~ V.modify (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf ts db) ts))) $> []
+                               [] -> put (db & data' %~ V.modify
+                                                        (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts)))
+                                                        $> []
                                errors -> return errors
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
@@ -45,12 +47,19 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                                                    (_data' V.++ V.fromList ts)) $> []
                    errors -> return errors
 
+clearTS :: [DTS] -> Update TimeseriesDB [Error]
+clearTS dts = case dts of
+                [] -> put (TimeseriesDB IM.empty HM.empty V.empty) $> []
+                dtss -> get >>= \db@TimeseriesDB{..}
+                          -> case validDelete db dtss of
+                                  []     -> put (TimeseriesDB (tIxDeleteTS dtss db)
+                                                              (sIxDeleteTS dtss db)
+                                                              (vDeleteTS dtss db)) $> []
+                                  errors -> return errors
+
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either Error QueryR)
 filterTS qm@Q{..} = ask <&> runReader (runExceptT query) . InternalQ qm
-
-clearTS :: Update TimeseriesDB ()
-clearTS = put $ TimeseriesDB IM.empty HM.empty V.empty
 
 allTimestamps :: Bool -> Query TimeseriesDB (Either Error [Timestamp])
 allTimestamps bounded = ask <&> \db ->

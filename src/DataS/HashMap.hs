@@ -3,15 +3,16 @@ module DataS.HashMap
    , M.HashMap
    , M.unionWith
    , M.insertWith
+   , M.differenceWith
    , M.foldlWithKey'
    , M.union
    , M.fromList
+   , M.fromListWith
    , M.singleton
    , M.empty
    , M.foldl'
    , M.lookup
    , M.keys
-   , M.fromListWith
    , (M.!)
    ) where
 
