@@ -14,4 +14,4 @@ generateTS = do now <- getPOSIXTime
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS
-                I.writeFile "demoTS.json" (encodeToLazyText ts)
+                I.writeFile "demoTS2.json" (encodeToLazyText ts)

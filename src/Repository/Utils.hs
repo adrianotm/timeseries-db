@@ -76,6 +76,6 @@ sIxDeleteTS dtss db@TimeseriesDB{..} = HM.differenceWith f _sIx dhm
         f im1 im2 = let im = IM.difference im1 im2 in if im == IM.empty then Nothing else Just im
 
 vDeleteTS :: [DTS] -> TimeseriesDB -> V.Vector TS
-vDeleteTS dtss db@TimeseriesDB{..} = V.concat $ foldl' f [] $ L.sort $ L.map (\ds -> unsafeIndexOf (Right ds) db) dtss
+vDeleteTS dtss db@TimeseriesDB{..} = V.concat $ L.reverse $ foldl' f [] $ L.sort $ L.map (\ds -> unsafeIndexOf (Right ds) db) dtss
   where f [] ix      = let (spl1, spl2) = V.splitAt ix _data' in [spl2, spl1]
         f (v:acc) ix = let (spl1, spl2) = V.splitAt ix v in spl2 : spl1 : acc

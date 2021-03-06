@@ -135,7 +135,7 @@ instance ToJSON QueryR where
 instance FromJSON GroupBy where
     parseJSON (String "timestamp") = return GByTimestamp
     parseJSON (String "tag")       = return GByTag
-    parseJSON _                    = fail "Illegal groupBy"
+    parseJSON _                    = fail "Illegal groupBy."
 
 instance FromJSON Sort where
     parseJSON (String "asc")  = return Asc
