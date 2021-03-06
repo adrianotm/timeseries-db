@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Repository.Queries where
 
-import           Data.DList                 as DL
+import           DataS.DList                as DL
 
 import           Control.Monad.Except
 import           Control.Monad.Reader       (ask)

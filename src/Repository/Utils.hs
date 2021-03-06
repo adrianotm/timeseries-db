@@ -5,11 +5,11 @@ module Repository.Utils where
 import           Control.Monad
 import           Data.Conduit
 import           Data.Conduit.Combinators  as CC
-import           Data.DList                as DL
 import           Data.List                 as L
 import           Data.Maybe                (mapMaybe)
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
+import           DataS.DList               as DL
 import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
 

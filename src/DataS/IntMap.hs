@@ -22,18 +22,18 @@ import           Control.Monad.State
 import           Data.Foldable
 import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal
+import qualified Data.IntMap.Lazy     as IML
 import qualified Data.IntMap.Strict   as IM
 import           Repository.Model
 
-
 --- Bool - return the equal key
-lookupGT' :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
-lookupGT' re k im =
+getGT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
+getGT re k im =
    case im of
      Bin p m l r
        | nomatch k p m -> if mask k m > p then Nil else im
-       | zero k m -> Bin p m (lookupGT' re k l) r
-       | otherwise -> r
+       | zero k m -> Bin p m (getGT re k l) r
+       | otherwise -> getGT re k r
      t@(Tip ky y)
        | k < ky -> t
        | re && k == ky -> t
@@ -41,26 +41,25 @@ lookupGT' re k im =
      Nil -> Nil
 
 --- Bool - return the equal key
-lookupLT' :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
-lookupLT' re k im =
+getLT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
+getLT re k im =
    case im of
      Bin p m l r
        | nomatch k p m -> if mask k m < p then Nil else im
-       | zero k m -> lookupLT' re k l
-       | otherwise -> Bin p m l $ lookupLT' re k r
+       | zero k m -> getLT re k l
+       | otherwise -> Bin p m l $ getLT re k r
      t@(Tip ky y)
        | k > ky -> t
        | re && k == ky -> t
        | otherwise -> Nil
      Nil -> Nil
 
-
 --- Bool - return the equal key
-lookupGLT' :: Bool -> Bool -> Key -> Key -> IM.IntMap a -> IM.IntMap a
-lookupGLT' re1 re2 k1 k2 im =
+getGLT :: Bool -> Bool -> Key -> Key -> IM.IntMap a -> IM.IntMap a
+getGLT re1 re2 k1 k2 im =
    case im of
      Bin p m l r
-       | mask k1 m <= p && p <= mask k2 m -> Bin p m (lookupGLT' re1 re2 k1 k2 l) (lookupGLT' re1 re2 k1 k2 r)
+       | mask k1 m <= p && p <= mask k2 m -> Bin p m (getGLT re1 re2 k1 k2 l) (getGLT re1 re2 k1 k2 r)
        | otherwise -> Nil
      t@(Tip ky y)
        | k1 < ky && ky < k2 -> t
@@ -69,10 +68,14 @@ lookupGLT' re1 re2 k1 k2 im =
        | otherwise -> Nil
      Nil -> Nil
 
-foldMap' :: Monoid m => Maybe Sort -> (a -> m) -> IM.IntMap a -> m
-foldMap' (Just Desc) f = IM.foldr' (\a acc -> acc <> f a) mempty
-foldMap' _  f          = Data.Foldable.foldMap' f
+foldMap :: Monoid m => Maybe Limit -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
+foldMap Nothing (Just Desc) f  = IM.foldr' (\a acc -> acc <> f a) mempty
+foldMap Nothing _  f           = Data.Foldable.foldMap' f
+foldMap (Just _) (Just Desc) f = IM.foldl (\acc a -> f a <> acc) mempty
+foldMap (Just _) _ f           = Data.Foldable.foldMap f
 
-foldMapWithKey' :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
-foldMapWithKey' (Just Desc) f  = IM.foldrWithKey' (\k v acc -> acc <> f k v) mempty
-foldMapWithKey' _ f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty
+foldMapWithKey :: Monoid m => Maybe Limit -> Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
+foldMapWithKey Nothing (Just Desc) f  = IM.foldrWithKey' (\k v acc -> acc <> f k v) mempty
+foldMapWithKey Nothing _ f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty
+foldMapWithKey (Just _) (Just Desc) f = IML.foldlWithKey (\acc k v -> f k v <> acc) mempty
+foldMapWithKey (Just _) _ f = IML.foldrWithKey (\k v acc -> f k v <> acc) mempty

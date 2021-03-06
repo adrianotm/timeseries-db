@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d04f4468427b27f1e923fcd08be21bbc9700c65c5931dad9fb211dd9c16da460
+-- hash: 8b89b1435bdf3deb3ee386066ac84ed9886487efa957487acd6fb56478f0b093
 
 name:           diplomska
 version:        0.1.0.0
@@ -29,6 +29,7 @@ library
       Aggregates
       Api
       App
+      DataS.DList
       DataS.HashMap
       DataS.IntMap
       Repository.Handlers

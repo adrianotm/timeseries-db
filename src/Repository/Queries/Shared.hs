@@ -4,22 +4,22 @@ import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
 import           Aggregates
-import qualified Data.DList           as DL
 import           Data.Foldable
 import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
+import qualified DataS.DList          as DL
 import qualified DataS.IntMap         as IM
 import           Repository.Model
 
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
-qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.lookupGLT' False False gt lt
-qmToF Q {gt = (Just gt), le = (Just le)} = IM.lookupGLT' False True gt le
-qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.lookupGLT' True False ge lt
-qmToF Q {ge = (Just ge), le = (Just le)} = IM.lookupGLT' True True ge le
-qmToF Q {gt = (Just gt)}                 = IM.lookupGT' False gt
-qmToF Q {ge = (Just ge)}                 = IM.lookupGT' True ge
-qmToF Q {lt = (Just lt)}                 = IM.lookupLT' False lt
-qmToF Q {le = (Just le)}                 = IM.lookupLT' True le
+qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGLT False False gt lt
+qmToF Q {gt = (Just gt), le = (Just le)} = IM.getGLT False True gt le
+qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.getGLT True False ge lt
+qmToF Q {ge = (Just ge), le = (Just le)} = IM.getGLT True True ge le
+qmToF Q {gt = (Just gt)}                 = IM.getGT False gt
+qmToF Q {ge = (Just ge)}                 = IM.getGT True ge
+qmToF Q {lt = (Just lt)}                 = IM.getLT False lt
+qmToF Q {le = (Just le)}                 = IM.getLT True le
 qmToF Q {}                               = id
 
 data QueryType = TSQuery | TagQuery

@@ -1,9 +1,9 @@
 module Aggregates where
 
 import           Control.Monad.Except
-import qualified Data.DList           as DL
 import           Data.Foldable
 import           Data.Map.Strict
+import qualified DataS.DList          as DL
 import           Repository.Model
 
 newtype Collect n = Collect { getList :: DL.DList n }
