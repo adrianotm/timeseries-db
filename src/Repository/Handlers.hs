@@ -31,13 +31,6 @@ import           Repository.Queries
 import           Repository.Queries.Shared
 import           Repository.Utils
 
-updateTS :: [TS] -> Update TimeseriesDB [Error]
-updateTS ts = get >>= \db -> case validUpdate db ts of
-                               [] -> put (db & data' %~ V.modify
-                                                        (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts)))
-                                                        $> []
-                               errors -> return errors
-
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get
                  case validInsert db ts of
@@ -45,17 +38,24 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                                  put (TimeseriesDB (tIxAppendTS ts _tIx startIx)
                                                    (sIxAppendTS ts _sIx startIx)
                                                    (_data' V.++ V.fromList ts)) $> []
-                   errors -> return errors
+                   errors -> return $ take 10 errors
+
+updateTS :: [TS] -> Update TimeseriesDB [Error]
+updateTS ts = get >>= \db -> case validUpdate db ts of
+                               [] -> put (db & data' %~ V.modify
+                                                        (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts)))
+                                                        $> []
+                               errors -> return $ take 10 errors
 
 clearTS :: [DTS] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
                 [] -> put (TimeseriesDB IM.empty HM.empty V.empty) $> []
                 dtss -> get >>= \db@TimeseriesDB{..}
                           -> case validDelete db dtss of
-                                  []     -> put (TimeseriesDB (tIxDeleteTS dtss db)
-                                                              (sIxDeleteTS dtss db)
-                                                              (vDeleteTS dtss db)) $> []
-                                  errors -> return errors
+                              []     -> put (TimeseriesDB (tIxDeleteTS dtss db)
+                                                          (sIxDeleteTS dtss db)
+                                                          (vDeleteTS dtss db)) $> []
+                              errors -> return $ take 10 errors
 
 filterTS :: QueryModel
          -> Query TimeseriesDB (Either Error QueryR)

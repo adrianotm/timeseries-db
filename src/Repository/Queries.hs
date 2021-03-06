@@ -28,7 +28,7 @@ query = ask
     >>= \InternalQ{qm=qm@Q{..}}
         -> case aggFunc of
             (Just AvgAgg) -> queryF qm getAverage (toAvg . value) >>=
-                                        either (handleAgg "Average failed")
+                                        either (handleAgg "Average failed.")
                                                (return . toAggRG (fromMaybe 0 . getAverage) limit)
             (Just SumAgg) ->  queryF qm getSum (Sum . value) <&> either toAggR (toAggRG getSum limit)
             (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toAggR (toAggRG getSum limit)

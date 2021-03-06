@@ -58,7 +58,6 @@ toAggRG f limit m = QR $ Right $ Left $ either (trans Left) (trans Right) m
     where trans keyF dl = DL.toList $ foldl' (uncurry . conc' keyF) DL.empty (maybe id takeDL limit dl)
           conc' keyF acc k v = DL.snoc acc (GroupAggR (keyF k) (f v))
 
---- Maybe do additional checks here.
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery
 qmToQT Q {groupBy = (Just GByTag)} = TagQuery
