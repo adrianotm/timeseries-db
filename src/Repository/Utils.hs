@@ -3,8 +3,6 @@
 module Repository.Utils where
 
 import           Control.Monad
-import           Data.Conduit
-import           Data.Conduit.Combinators  as CC
 import           Data.List                 as L
 import           Data.Maybe                (mapMaybe)
 import qualified Data.Vector               as V
@@ -54,7 +52,7 @@ illegalQM _                                         = (False, "")
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
 tIxAppendTS ts im ix = IM.unionWith DL.append im appendIM
-  where appendIM = IM.fromList $ [(timestamp, DL.singleton i) | TS{..} <- ts | i <- [ix..]]
+  where appendIM = IM.fromListWith DL.append $ [(timestamp, DL.singleton i) | TS{..} <- ts | i <- [ix..]]
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
 sIxAppendTS ts m ix = HM.unionWith IM.union m appendIM

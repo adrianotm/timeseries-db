@@ -162,7 +162,7 @@ instance ToJSON GroupAggR where
 
 makeLenses ''TimeseriesDB
 
-$(deriveJSON defaultOptions{fieldLabelModifier = drop 2} ''DTS)
+$(deriveJSON defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS)
 $(deriveJSON defaultOptions{rejectUnknownFields = True} ''TS)
 $(deriveFromJSON defaultOptions{rejectUnknownFields = True} ''QueryModel)
 

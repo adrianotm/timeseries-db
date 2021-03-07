@@ -52,11 +52,11 @@ instance (Semigroup v, Ord k) => Monoid (Group k v) where
 toGroup :: k -> v -> Group k v
 toGroup k v = Group $ singleton k v
 
-toAggR :: Val -> QueryR
-toAggR = QR . Right . Right . AggR
+toQR :: Val -> QueryR
+toQR = QR . Right . Right . AggR
 
 toCollR :: [TS] -> QueryR
 toCollR = QR . Left
 
 handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
-handleAgg err = maybe (throwError err) (return . toAggR)
+handleAgg err = maybe (throwError err) (return . toQR)

@@ -34,6 +34,11 @@ packages:
 
 extra-deps:
   - acid-state-0.16.0.1
+  - aeson-1.5.6.0
+  - data-fix-0.3.1
+  - strict-0.4.0.1
+  - servant-0.18.2
+  - servant-server-0.18.2
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:

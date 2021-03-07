@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8b89b1435bdf3deb3ee386066ac84ed9886487efa957487acd6fb56478f0b093
+-- hash: 9ead533e4690d5fd6287390ae3f79f399f87e5411dab05ced48d8ab9b02b1935
 
 name:           diplomska
 version:        0.1.0.0
@@ -53,7 +53,6 @@ library
     , blaze-html
     , blaze-markup
     , bytestring
-    , conduit
     , containers
     , directory
     , dlist
@@ -93,7 +92,6 @@ executable diplomska-exe
     , blaze-html
     , blaze-markup
     , bytestring
-    , conduit
     , containers
     , diplomska
     , directory
@@ -135,7 +133,6 @@ test-suite diplomska-test
     , blaze-html
     , blaze-markup
     , bytestring
-    , conduit
     , containers
     , diplomska
     , directory

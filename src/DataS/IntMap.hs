@@ -22,7 +22,6 @@ import           Control.Monad.State
 import           Data.Foldable
 import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal
-import qualified Data.IntMap.Lazy     as IML
 import qualified Data.IntMap.Strict   as IM
 import           Repository.Model
 
@@ -68,14 +67,24 @@ getGLT re1 re2 k1 k2 im =
        | otherwise -> Nil
      Nil -> Nil
 
-foldMap :: Monoid m => Maybe Limit -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
-foldMap Nothing (Just Desc) f  = IM.foldr' (\a acc -> acc <> f a) mempty
-foldMap Nothing _  f           = Data.Foldable.foldMap' f
-foldMap (Just _) (Just Desc) f = IM.foldl (\acc a -> f a <> acc) mempty
-foldMap (Just _) _ f           = Data.Foldable.foldMap f
+foldMapDesc :: Monoid m => (a -> m) -> IM.IntMap a -> m
+foldMapDesc f = go
+    where go Nil           = mempty
+          go (Tip _ v)     = f v
+          go (Bin _ m l r) = go r `mappend` go l
 
-foldMapWithKey :: Monoid m => Maybe Limit -> Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
-foldMapWithKey Nothing (Just Desc) f  = IM.foldrWithKey' (\k v acc -> acc <> f k v) mempty
-foldMapWithKey Nothing _ f = IM.foldlWithKey' (\acc k v -> acc <> f k v) mempty
-foldMapWithKey (Just _) (Just Desc) f = IML.foldlWithKey (\acc k v -> f k v <> acc) mempty
-foldMapWithKey (Just _) _ f = IML.foldrWithKey (\k v acc -> f k v <> acc) mempty
+foldMapWithKeyDesc :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
+foldMapWithKeyDesc f = go
+    where go Nil           = mempty
+          go (Tip kx x)    = f kx x
+          go (Bin _ m l r) = go r `mappend` go l
+
+foldMap :: Monoid m => Maybe Agg -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
+foldMap Nothing (Just Desc) f  = foldMapDesc f
+foldMap Nothing _           f  = Data.Foldable.foldMap f
+foldMap (Just _) (Just Desc) f = IM.foldr' (\a acc -> acc <> f a) mempty
+foldMap (Just _) _           f = Data.Foldable.foldMap' f
+
+foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
+foldMapWithKey (Just Desc) = foldMapWithKeyDesc
+foldMapWithKey _           = IM.foldMapWithKey

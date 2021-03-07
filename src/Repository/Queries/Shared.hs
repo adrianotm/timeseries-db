@@ -50,13 +50,9 @@ toTagAggR = Right . Left . getList
 toTSAggR :: Collect (Timestamp, v) -> AggRes a v
 toTSAggR = Right . Right . getList
 
-takeDL :: Int -> DL.DList a -> DL.DList a
-takeDL n = DL.fromList . take n . DL.toList
-
-toAggRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v)) -> QueryR
-toAggRG f limit m = QR $ Right $ Left $ either (trans Left) (trans Right) m
-    where trans keyF dl = DL.toList $ foldl' (uncurry . conc' keyF) DL.empty (maybe id takeDL limit dl)
-          conc' keyF acc k v = DL.snoc acc (GroupAggR (keyF k) (f v))
+toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v)) -> QueryR
+toQRG f limit m = QR $ Right $ Left $ maybe id take limit $ either (trans Left) (trans Right) m
+    where trans keyF dl = foldr (\(k,v) acc -> GroupAggR (keyF k) (f v) : acc) [] dl
 
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery

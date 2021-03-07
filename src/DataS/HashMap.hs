@@ -19,6 +19,5 @@ module DataS.HashMap
 import           Data.HashMap.Strict as M
 import           Repository.Model
 
-foldMapWithKey :: Monoid m => Maybe Limit -> (k -> a -> m) -> HashMap k a -> m
-foldMapWithKey Nothing f  = M.foldlWithKey' (\acc k v -> acc <> f k v) mempty
-foldMapWithKey (Just _) f = M.foldrWithKey (\k v acc -> acc <> f k v) mempty
+foldMapWithKey :: Monoid m => (k -> a -> m) -> HashMap k a -> m
+foldMapWithKey f = M.foldrWithKey (\k v acc -> f k v <> acc) mempty

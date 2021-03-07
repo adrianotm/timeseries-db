@@ -11,9 +11,16 @@ getTag i
   | i `mod` 5 == 0  = Tag $ Left "cholak"
   | otherwise  = Tag $ Left "test"
 
+getTs :: Int -> Int
+getTs i
+  | even i = 1
+  | i `mod` 3 == 0  = 2
+  | i `mod` 5 == 0  = 3
+  | otherwise  = 4
+
 generateTS :: IO [TS]
 generateTS = do now <- getPOSIXTime
-                return [TS (round (0 + fromIntegral i)) (getTag i) 66 | i <- [0..500000]]
+                return [TS (i `mod` 10) (Tag $ Right (0 + fromIntegral i)) 66 | i <- [0..1000000]]
 
 demoTSFile :: IO ()
 demoTSFile = do ts <- generateTS

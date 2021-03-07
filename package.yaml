@@ -38,17 +38,16 @@ dependencies:
   - blaze-markup
   - blaze-html
   - array
-  - containers
   - acid-state
   - safecopy
   - lens
-  - unordered-containers
   - vector
   - transformers
   - dlist
   - scientific
   - hashable
-  - conduit
+  - containers
+  - unordered-containers
 
 library:
   source-dirs: src
