@@ -1,4 +1,7 @@
 import           Data.Aeson.Text
+import qualified Data.DList            as DL
+import           Data.Foldable
+import           Data.Semigroup
 import           Data.Text.Lazy.IO     as I
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
@@ -18,10 +21,8 @@ getTs i
   | i `mod` 5 == 0  = 3
   | otherwise  = 4
 
-generateTS :: IO [TS]
-generateTS = do now <- getPOSIXTime
-                return [TS (i `mod` 10) (Tag $ Right (0 + fromIntegral i)) 66 | i <- [0..1000000]]
+generateTS :: [TS]
+generateTS = [TS (0 + i) (Tag $ Left "adrian") 66 | i <- [0..1500000]]
 
 demoTSFile :: IO ()
-demoTSFile = do ts <- generateTS
-                I.writeFile "demoTS.json" (encodeToLazyText ts)
+demoTSFile = I.writeFile "demoTS3.json" (encodeToLazyText generateTS)

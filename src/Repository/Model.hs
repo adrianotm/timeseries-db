@@ -48,7 +48,7 @@ import qualified Data.Vector          as V
 import           GHC.Generics
 
 type Timestamp = Int
-type Val = Float
+type Val = Double
 type Ix = Int
 type Limit = Int
 
@@ -125,7 +125,7 @@ instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => S
     getCopy = contain $ fmap HM.fromList safeGet
     putCopy = contain . safePut . HM.toList
 
-instance Bounded Float where
+instance Bounded Double where
     { minBound = -1/0; maxBound = 1/0 }
 
 instance ToJSON QueryR where

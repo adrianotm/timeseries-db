@@ -1,6 +1,8 @@
 module DataS.HashMap
    ( module DataS.HashMap
    , M.HashMap
+   , M.mapMaybe
+   , M.filter
    , M.unionWith
    , M.insertWith
    , M.differenceWith

@@ -8,7 +8,7 @@
 # A snapshot resolver dictates the compiler version and the set of packages
 # to be used for project dependencies. For example:
 #
-# resolver: lts-3.5
+resolver: lts-17.5
 # resolver: nightly-2015-09-21
 # resolver: ghc-7.10.2
 #
@@ -17,8 +17,8 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/29.yaml
+# resolver:
+#   url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/29.yaml
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -39,6 +39,11 @@ extra-deps:
   - strict-0.4.0.1
   - servant-0.18.2
   - servant-server-0.18.2
+  - containers-0.6.4.1
+  - Cabal-3.2.1.0
+  - binary-0.8.8.0
+  - parsec-3.1.14.0
+  - text-1.2.4.1
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:

@@ -14,18 +14,18 @@ import           Aggregates
 import           Repository.Model
 import           Repository.Queries.Shared
 
-queryTS' :: (Monoid v) => (v -> a) -> (TS -> v) -> Maybe (Timestamp, DL.DList Ix) -> ExceptQ (AggRes a v)
+queryTS' :: (Monoid v) => (v -> a) -> (Ix -> v) -> Maybe (Timestamp, DL.DList Ix) -> ExceptQ (AggRes a v)
 queryTS' get to Nothing = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                                     -> case groupBy of
-                                          (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts dl -> toCollect (ts, foldMap' (to . getTS _data') dl)) (qmToF qm _tIx)
-                                          _ -> toCollAggR $ get $ IM.foldMap aggFunc sort (DL.foldMap aggFunc (to . getTS _data')) (qmToF qm _tIx)
+                                          (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts dl -> toCollect (ts, foldMap' to dl)) (qmToF qm _tIx)
+                                          _ -> toCollAggR $ get $ IM.foldMap aggFunc sort (DL.foldMap aggFunc to) (qmToF qm _tIx)
 
 queryTS' get to (Just (ts, dl)) = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                                              -> case groupBy of
-                                                  (Just GByTimestamp) -> toTSAggR $ toCollect (ts, foldMap' (to . getTS _data') dl)
-                                                  _ -> toCollAggR $ get $ DL.foldMap aggFunc (to . getTS _data') dl
+                                                  (Just GByTimestamp) -> toTSAggR $ toCollect (ts, foldMap' to dl)
+                                                  _ -> toCollAggR $ get $ DL.foldMap aggFunc to dl
 
-queryTS :: (Monoid v) => (v -> a) -> (TS -> v) -> ExceptQ (AggRes a v)
+queryTS :: (Monoid v) => (v -> a) -> (Ix -> v) -> ExceptQ (AggRes a v)
 queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                          -> case tsEq of
                              Nothing -> queryTS' get to Nothing

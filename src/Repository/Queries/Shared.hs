@@ -12,10 +12,10 @@ import qualified DataS.IntMap         as IM
 import           Repository.Model
 
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
-qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGLT False False gt lt
-qmToF Q {gt = (Just gt), le = (Just le)} = IM.getGLT False True gt le
-qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.getGLT True False ge lt
-qmToF Q {ge = (Just ge), le = (Just le)} = IM.getGLT True True ge le
+qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGT False gt . IM.getLT False lt
+qmToF Q {gt = (Just gt), le = (Just le)} = IM.getGT False gt . IM.getLT True le
+qmToF Q {lt = (Just lt), ge = (Just ge)} = IM.getGT True ge . IM.getLT False lt
+qmToF Q {ge = (Just ge), le = (Just le)} = IM.getGT True ge . IM.getLT True le
 qmToF Q {gt = (Just gt)}                 = IM.getGT False gt
 qmToF Q {ge = (Just ge)}                 = IM.getGT True ge
 qmToF Q {lt = (Just lt)}                 = IM.getLT False lt

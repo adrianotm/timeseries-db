@@ -2,6 +2,8 @@ module DataS.IntMap
    ( module DataS.IntMap
    , IM.IntMap
    , IM.empty
+   , IM.null
+   , IM.size
    , IM.singleton
    , IM.foldrWithKey
    , IM.differenceWith
@@ -53,20 +55,6 @@ getLT re k im =
        | otherwise -> Nil
      Nil -> Nil
 
---- Bool - return the equal key
-getGLT :: Bool -> Bool -> Key -> Key -> IM.IntMap a -> IM.IntMap a
-getGLT re1 re2 k1 k2 im =
-   case im of
-     Bin p m l r
-       | mask k1 m <= p && p <= mask k2 m -> Bin p m (getGLT re1 re2 k1 k2 l) (getGLT re1 re2 k1 k2 r)
-       | otherwise -> Nil
-     t@(Tip ky y)
-       | k1 < ky && ky < k2 -> t
-       | re1 && ky < k2 && k1 == ky -> t
-       | k1 < ky && re2 && k2 == ky -> t
-       | otherwise -> Nil
-     Nil -> Nil
-
 foldMapDesc :: Monoid m => (a -> m) -> IM.IntMap a -> m
 foldMapDesc f = go
     where go Nil           = mempty
@@ -80,10 +68,9 @@ foldMapWithKeyDesc f = go
           go (Bin _ m l r) = go r `mappend` go l
 
 foldMap :: Monoid m => Maybe Agg -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
-foldMap Nothing (Just Desc) f  = foldMapDesc f
-foldMap Nothing _           f  = Data.Foldable.foldMap f
-foldMap (Just _) (Just Desc) f = IM.foldr' (\a acc -> acc <> f a) mempty
-foldMap (Just _) _           f = Data.Foldable.foldMap' f
+foldMap Nothing (Just Desc) = foldMapDesc
+foldMap Nothing _           = Data.Foldable.foldMap
+foldMap (Just _) _          = Data.Foldable.foldMap'
 
 foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey (Just Desc) = foldMapWithKeyDesc
