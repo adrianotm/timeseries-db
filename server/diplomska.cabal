@@ -6,11 +6,11 @@ cabal-version: 1.12
 --
 -- hash: 9ead533e4690d5fd6287390ae3f79f399f87e5411dab05ced48d8ab9b02b1935
 
-name:           diplomska
+name:           server
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/diplomska#readme>
-homepage:       https://github.com/githubuser/diplomska#readme
-bug-reports:    https://github.com/githubuser/diplomska/issues
+description:    Please see the README on GitHub at <https://github.com/githubuser/server#readme>
+homepage:       https://github.com/githubuser/server#readme
+bug-reports:    https://github.com/githubuser/server/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2021 Author name here
@@ -22,7 +22,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/diplomska
+  location: https://github.com/githubuser/server
 
 library
   exposed-modules:
@@ -40,7 +40,7 @@ library
       Repository.Queries.TS
       Repository.Utils
   other-modules:
-      Paths_diplomska
+      Paths_server
   hs-source-dirs:
       src
   build-depends:
@@ -75,10 +75,10 @@ library
     , warp
   default-language: Haskell2010
 
-executable diplomska-exe
+executable server-exe
   main-is: Main.hs
   other-modules:
-      Paths_diplomska
+      Paths_server
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -93,54 +93,10 @@ executable diplomska-exe
     , blaze-markup
     , bytestring
     , containers
-    , diplomska
+    , server
     , directory
     , dlist
     , hashable
-    , http-media
-    , lens
-    , lucid
-    , mtl
-    , safecopy
-    , scientific
-    , servant
-    , servant-server
-    , string-conversions
-    , text
-    , time
-    , transformers
-    , unordered-containers
-    , vector
-    , wai
-    , warp
-  default-language: Haskell2010
-
-test-suite diplomska-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_diplomska
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      acid-state
-    , aeson
-    , array
-    , attoparsec
-    , base
-    , base-compat-batteries
-    , blaze-html
-    , blaze-markup
-    , bytestring
-    , containers
-    , diplomska
-    , directory
-    , dlist
-    , hashable
-    , hspec
-    , hspec-wai
-    , hspec-wai-json
     , http-media
     , lens
     , lucid

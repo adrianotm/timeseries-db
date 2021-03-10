@@ -2,3 +2,6 @@
 state/
 demoTS.json
 stack.yaml.lock
+cabal.project.local
+dist-newstyle/
+result
