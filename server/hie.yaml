@@ -4,10 +4,7 @@ cradle:
       component: "lib:server"
 
     - path: "app/Main.hs"
-      component: "server:exe:server-exe"
+      component: "server:exe:server"
 
     - path: "app/Paths_server.hs"
-      component: "server:exe:server-exe"
-
-    - path: "test"
-      component: "server:test:server-test"
+      component: "server:exe:server"
