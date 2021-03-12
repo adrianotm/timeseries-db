@@ -3,13 +3,14 @@ module Repository.Queries.Shared where
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
-import           Aggregates
-import           Data.Foldable
+import           Aggregates           (Collect (getList))
 import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
 import qualified DataS.DList          as DL
 import qualified DataS.IntMap         as IM
-import           Repository.Model
+import           Repository.Model     (GroupAggR (..), GroupBy (GByTag), Ix,
+                                       Limit, QueryModel (..), QueryR (..), TS,
+                                       Tag, TimeseriesDB, Timestamp, Val)
 
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGT False gt . IM.getLT False lt

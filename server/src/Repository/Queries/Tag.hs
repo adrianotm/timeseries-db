@@ -2,19 +2,20 @@
 module Repository.Queries.Tag where
 
 import           Control.Monad.Reader       (Reader, ask)
-import           Control.Monad.Trans.Except
-import           Data.Bool
-import           Data.Foldable
-import           Data.Functor
-import           Data.IntMap.Internal
+import           Control.Monad.Trans.Except (throwE)
+import           Data.Foldable              (Foldable (foldMap'))
+import           Data.Functor               ((<&>))
 import qualified Data.Vector                as V
 import qualified DataS.DList                as DL
 import qualified DataS.HashMap              as HM
 import qualified DataS.IntMap               as IM
 
-import           Aggregates
-import           Repository.Model
-import           Repository.Queries.Shared
+import           Aggregates                 (toCollect)
+import           Repository.Model           (GroupBy (..), Ix, QueryModel (..),
+                                             Tag, TimeseriesDB (..))
+import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
+                                             noDataErr, qmToF, toCollAggR,
+                                             toTSAggR, toTagAggR)
 
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}

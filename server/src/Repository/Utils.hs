@@ -2,19 +2,17 @@
 {-# LANGUAGE RecordWildCards  #-}
 module Repository.Utils where
 
-import           Control.Monad
-import           Data.List                 as L
-import           Data.Maybe                (mapMaybe)
-import qualified Data.Vector               as V
-import qualified Data.Vector.Mutable       as VM
-import           DataS.DList               as DL
-import qualified DataS.HashMap             as HM
-import qualified DataS.IntMap              as IM
+import           Data.List           as L (foldl', map, reverse, sort, (\\))
+import           Data.Maybe          (mapMaybe)
+import qualified Data.Vector         as V
+import qualified Data.Vector.Mutable as VM
+import           DataS.DList         as DL (append, fromList, singleton, toList)
+import qualified DataS.HashMap       as HM
+import qualified DataS.IntMap        as IM
 
-import           Aggregates
-import           Repository.Model
-import           Repository.Queries
-import           Repository.Queries.Shared
+import           Repository.Model    (DTS (..), Ix, QueryModel (..), TS (..),
+                                      TagIndex, TimeseriesDB (..),
+                                      TimestampIndex)
 
 type Error = String
 

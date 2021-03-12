@@ -11,9 +11,10 @@ module DataS.DList
    )
    where
 
-import           Data.DList       as DL
-import           Data.Foldable
-import           Repository.Model
+import           Data.DList       as DL (DList, append, cons, empty, fromList,
+                                         singleton, snoc, toList)
+import           Data.Foldable    (Foldable (foldMap, foldMap'))
+import           Repository.Model (Agg)
 
 foldMap :: Monoid m => Maybe Agg -> (a -> m) -> DL.DList a -> m
 foldMap Nothing  = Data.Foldable.foldMap

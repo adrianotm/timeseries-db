@@ -10,23 +10,19 @@ module Api where
 
 import           Control.Exception.Base     (bracket)
 
-import           Control.Monad.Reader
-import           Data.Acid                  as A
-import           Data.Acid.Advanced         as AA
+import           Control.Monad.Reader       (MonadReader (ask),
+                                             ReaderT (runReaderT))
+import           Data.Acid                  as A (AcidState)
+import           Data.Acid.Advanced         as AA (query', update')
 import           Data.Aeson                 (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8 as C
-import           Data.Functor
-import           Data.IntMap                as IM
-import           GHC.Generics
-import           Network.Wai
-import           Network.Wai.Handler.Warp
-import           Servant
-import           Servant.API
-
-import           Aggregates
+import           Network.Wai                (Application)
 import           Repository.Handlers
-import           Repository.Model
-import           Repository.Utils
+import           Repository.Model           (DTS, QueryModel, QueryR (..), TS,
+                                             Tag, TimeseriesDB, Timestamp,
+                                             emptyQM)
+import           Repository.Utils           (illegalQM)
+import           Servant
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT

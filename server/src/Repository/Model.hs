@@ -32,7 +32,6 @@ import           Data.Aeson.TH        (defaultOptions, deriveFromJSON,
                                        deriveJSON, fieldLabelModifier,
                                        rejectUnknownFields)
 import qualified Data.DList           as DL
-import           Data.Functor
 import           Data.Hashable        (Hashable)
 import qualified Data.HashMap.Strict  as HM
 import qualified Data.IntMap          as IM
@@ -40,7 +39,7 @@ import qualified Data.Map             as M
 import           Data.Maybe           (isJust, mapMaybe)
 import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
                                        getCopy, putCopy, safeGet, safePut)
-import           Data.Scientific
+import           Data.Scientific      (toBoundedInteger)
 import qualified Data.Set             as S
 import           Data.Text            (Text, unpack)
 import           Data.Typeable        (Typeable)

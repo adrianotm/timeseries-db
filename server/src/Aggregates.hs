@@ -1,10 +1,9 @@
 module Aggregates where
 
-import           Control.Monad.Except
-import           Data.Foldable
-import           Data.Map.Strict
+import           Control.Monad.Except (ExceptT, MonadError (throwError))
+import           Data.Map.Strict      (Map, empty, singleton, unionWith)
 import qualified DataS.DList          as DL
-import           Repository.Model
+import           Repository.Model     (AggR (AggR), QueryR (..), TS, Val)
 
 newtype Collect n = Collect { getList :: DL.DList n }
 
