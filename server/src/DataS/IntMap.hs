@@ -25,7 +25,7 @@ import           Data.Foldable
 import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal
 import qualified Data.IntMap.Strict   as IM
-import           Repository.Model
+import           Model
 
 --- Bool - return the equal key
 getGT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a

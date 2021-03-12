@@ -5,7 +5,7 @@ import           Data.Semigroup
 import           Data.Text.Lazy.IO     as I
 import           Data.Time.Calendar
 import           Data.Time.Clock.POSIX
-import           Repository.Model
+import           Model
 
 getTag :: Int -> Tag
 getTag i

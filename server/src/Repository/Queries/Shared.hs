@@ -9,6 +9,7 @@ import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
 import qualified DataS.DList          as DL
 import qualified DataS.IntMap         as IM
+import           Model
 import           Repository.Model
 
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)

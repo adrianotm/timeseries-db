@@ -19,7 +19,7 @@ module DataS.HashMap
    ) where
 
 import           Data.HashMap.Strict as M
-import           Repository.Model
+import           Model
 
 foldMapWithKey :: Monoid m => (k -> a -> m) -> HashMap k a -> m
 foldMapWithKey f = M.foldrWithKey (\k v acc -> f k v <> acc) mempty

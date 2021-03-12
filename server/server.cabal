@@ -27,7 +27,7 @@ source-repository head
 library
   exposed-modules:
       Aggregates
-      Api
+      ApiHandlers
       App
       DataS.DList
       DataS.HashMap
@@ -39,8 +39,6 @@ library
       Repository.Queries.Tag
       Repository.Queries.TS
       Repository.Utils
-  other-modules:
-      Paths_server
   hs-source-dirs:
       src
   build-depends:
@@ -73,12 +71,11 @@ library
     , vector
     , wai
     , warp
+    , common
   default-language: Haskell2010
 
 executable server
   main-is: Main.hs
-  other-modules:
-      Paths_server
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -93,7 +90,6 @@ executable server
     , blaze-markup
     , bytestring
     , containers
-    , server
     , directory
     , dlist
     , hashable
@@ -113,4 +109,6 @@ executable server
     , vector
     , wai
     , warp
+    , server
+    , common
   default-language: Haskell2010

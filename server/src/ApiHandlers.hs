@@ -6,7 +6,7 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
-module Api where
+module ApiHandlers where
 
 import           Control.Exception.Base     (bracket)
 
@@ -24,27 +24,14 @@ import           Servant
 import           Servant.API
 
 import           Aggregates
+import           Api
+import           Model
 import           Repository.Handlers
 import           Repository.Model
 import           Repository.Utils
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT
-
-type TimeseriesApi =
-   ReqBody '[JSON] [TS] :> Post '[JSON] ()
-   :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
-   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
-   :<|> Get '[JSON] [TS]
-   :<|> ReqBody '[JSON] [DTS] :> Delete '[JSON] ()
-   :<|> Delete '[JSON] ()
-   :<|> "timestamps" :> QueryFlag "bounded" :> Get '[JSON] [Timestamp]
-   :<|> "tags" :> Get '[JSON] [Tag]
-
-type API = "timeseries" :> TimeseriesApi
-
-api :: Proxy API
-api = Proxy
 
 insertData :: [TS] -> AcidReaderT ()
 insertData ts = ask >>= flip update' (InsertTS ts)

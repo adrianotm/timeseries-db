@@ -4,6 +4,7 @@ import           Control.Monad.Except
 import           Data.Foldable
 import           Data.Map.Strict
 import qualified DataS.DList          as DL
+import           Model
 import           Repository.Model
 
 newtype Collect n = Collect { getList :: DL.DList n }

@@ -1,10 +1,13 @@
 cradle:
   cabal:
-    - path: "src"
+    - path: "./src"
       component: "lib:server"
 
-    - path: "app/Main.hs"
+    - path: "./app/Main.hs"
       component: "server:exe:server"
 
-    - path: "app/Paths_server.hs"
+    - path: "./app/Paths_server.hs"
       component: "server:exe:server"
+
+    - path: "../common/./"
+      component: "lib:common"

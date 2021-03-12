@@ -28,9 +28,16 @@ executable client
     -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
-    -- other-extensions:
-    build-depends:    
-        base 
+    ghcjs-options:
+      -dedupe
+    build-depends:       
+        base
       , miso
+      , lens
+      , text
+      , http-client
+      , servant
+      , servant-client
+      , common
     hs-source-dirs:   app
     default-language: Haskell2010

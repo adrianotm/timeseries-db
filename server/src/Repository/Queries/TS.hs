@@ -11,6 +11,7 @@ import qualified DataS.DList                as DL
 import qualified DataS.IntMap               as IM
 
 import           Aggregates
+import           Model
 import           Repository.Model
 import           Repository.Queries.Shared
 

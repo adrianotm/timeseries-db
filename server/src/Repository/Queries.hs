@@ -11,12 +11,13 @@ import           Data.Functor
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Semigroup
-import           Repository.Model
+import           Model
 import           Repository.Queries.Shared
 import           Repository.Queries.Tag
 import           Repository.Queries.TS
 
 import           Aggregates
+import           Repository.Model
 
 queryF :: Monoid m => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of

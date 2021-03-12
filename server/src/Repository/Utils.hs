@@ -12,6 +12,7 @@ import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
 
 import           Aggregates
+import           Model
 import           Repository.Model
 import           Repository.Queries
 import           Repository.Queries.Shared

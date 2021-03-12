@@ -1,55 +1,72 @@
--- | Haskell language pragma
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-
--- | Haskell module declaration
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeOperators     #-}
 module Main where
 
--- | Miso framework import
+import           Data.Proxy
+import           Data.Text
+import           GHC.Generics
 import           Miso
 import           Miso.String
+import           Network.HTTP.Client (defaultManagerSettings, newManager)
+import           Servant.API
+import           Servant.Client
 
--- | Type synonym for an application model
-type Model = Int
+import           Api
+import           Control.Lens
+import           Model
 
--- | Sum type for application events
+uploadData  :<|> updateData :<|> marketing :<|> queryData :<|> getAll :<|> deleteData  :<|> deleteAll :<|> allTS :<|> allTags = client api
+
+newtype Model = Model { _ts :: [TS] }
+
+makeLenses ''TS
+makeLenses ''Model
+
 data Action
-  = AddOne
-  | SubtractOne
-  | NoOp
+  = UploadData
   | SayHelloWorld
   deriving (Show, Eq)
 
--- | Entry point for a miso application
 main :: IO ()
 main = startApp App {..}
   where
     initialAction = SayHelloWorld -- initial action to be executed on application load
-    model  = 0                    -- initial model
-    update = updateModel          -- update function
+    model  = Model [TS 10 (Left "Yes") 50]              -- initial model
+    update = fromTransition . updateModel -- update function
     view   = viewModel            -- view function
     events = defaultEvents        -- default delegated events
     subs   = []                   -- empty subscription list
     mountPoint = Nothing          -- mount point for application (Nothing defaults to 'body')
     logLevel = Off                -- used during prerendering to see if the VDOM and DOM are in sync (only applies to `miso` function)
 
--- | Updates model, optionally introduces side effects
-updateModel :: Action -> Model -> Effect Action Model
-updateModel action m =
-  case action of
-    AddOne
-      -> noEff (m + 1)
-    SubtractOne
-      -> noEff (m - 1)
-    NoOp
-      -> noEff m
-    SayHelloWorld
-      -> m <# do consoleLog "Hello World" >> pure NoOp
-
--- | Constructs a virtual DOM from a model
 viewModel :: Model -> View Action
-viewModel x = div_ [] [
-   button_ [ onClick AddOne ] [ text "+" ]
- , text (ms x)
- , button_ [ onClick SubtractOne ] [ text "-" ]
+viewModel m = div_ [] [
+   input_
+   [ type_ "file"
+   , multiple_ False
+   , onChange (const AddOne)
+   ]
+ , table_
+   [ tr_ [ th_ "Timestamp"
+         , th_ "Tag"
+         , th_ "Value"
+         ]
+   , Prelude.map viewTS x
+   ]
  ]
+
+viewTS :: TS -> View Action
+viewTS ts
+  = tr_ [ td_ ts^.timestamp
+        , td_ ts^.tag
+        , td_ ts^.value
+        ]
+
+updateModel :: Action -> Transition Action Model ()
+updateModel action =
+  case action of
+    SayHelloWorld
+      -> scheduleIO_ (consoleLog "Hello World")

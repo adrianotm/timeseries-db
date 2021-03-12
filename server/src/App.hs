@@ -10,7 +10,8 @@ import           Data.Vector              as V
 import           DataS.HashMap            as HM
 import           Network.Wai.Handler.Warp
 
-import           Api
+import           ApiHandlers
+import           Model
 import           Repository.Model
 
 startApp :: IO ()

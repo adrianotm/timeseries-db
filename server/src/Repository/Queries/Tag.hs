@@ -11,9 +11,10 @@ import qualified Data.Vector                as V
 import qualified DataS.DList                as DL
 import qualified DataS.HashMap              as HM
 import qualified DataS.IntMap               as IM
+import           Repository.Model
 
 import           Aggregates
-import           Repository.Model
+import           Model
 import           Repository.Queries.Shared
 
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
