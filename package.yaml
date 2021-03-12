@@ -24,6 +24,7 @@ dependencies:
   - servant
   - servant-server
   - wai
+  - wai-cors
   - warp
   - text
   - time
@@ -48,6 +49,8 @@ dependencies:
   - hashable
   - containers
   - unordered-containers
+  - servant-elm
+  - elm-bridge
 
 library:
   source-dirs: server/src

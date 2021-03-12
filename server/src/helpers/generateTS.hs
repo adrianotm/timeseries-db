@@ -1,10 +1,6 @@
 import           Data.Aeson.Text
-import qualified Data.DList            as DL
-import           Data.Foldable
-import           Data.Semigroup
-import           Data.Text.Lazy.IO     as I
-import           Data.Time.Calendar
-import           Data.Time.Clock.POSIX
+import qualified Data.DList        as DL
+import           Data.Text.Lazy.IO as I
 import           Repository.Model
 
 getTag :: Int -> Tag
@@ -22,7 +18,7 @@ getTs i
   | otherwise  = 4
 
 generateTS :: [TS]
-generateTS = [TS (0 + i) (Tag $ Left "adrian") 66 | i <- [0..1500000]]
+generateTS = [TS (0 + i) (Tag $ Left "adrian") 66 | i <- [0..10]]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS3.json" (encodeToLazyText generateTS)

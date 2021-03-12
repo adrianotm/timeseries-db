@@ -28,9 +28,9 @@ import           Data.Aeson           (FromJSON, Object, ToJSON,
                                        Value (Number, String), object, pairs,
                                        parseJSON, toEncoding, toJSON,
                                        withObject, (.!=), (.:), (.:?), (.=))
-import           Data.Aeson.TH        (defaultOptions, deriveFromJSON,
-                                       deriveJSON, fieldLabelModifier,
-                                       rejectUnknownFields)
+import           Data.Aeson.TH        as AS (defaultOptions, deriveFromJSON,
+                                             deriveJSON, fieldLabelModifier,
+                                             rejectUnknownFields)
 import qualified Data.DList           as DL
 import           Data.Hashable        (Hashable)
 import qualified Data.HashMap.Strict  as HM
@@ -44,6 +44,8 @@ import qualified Data.Set             as S
 import           Data.Text            (Text, unpack)
 import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V
+import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
+                                              deriveElmDef)
 import           GHC.Generics
 
 type Timestamp = Int
@@ -136,10 +138,18 @@ instance FromJSON GroupBy where
     parseJSON (String "tag")       = return GByTag
     parseJSON _                    = fail "Illegal groupBy."
 
+instance ToJSON GroupBy where
+    toJSON GByTimestamp = "timestamp"
+    toJSON GByTag       = "tag"
+
 instance FromJSON Sort where
     parseJSON (String "asc")  = return Asc
     parseJSON (String "desc") = return Desc
     parseJSON _               = fail "Illegal sort."
+
+instance ToJSON Sort where
+    toJSON Asc  = "asc"
+    toJSON Desc = "desc"
 
 instance FromJSON Agg where
     parseJSON (String "avg")   = return AvgAgg
@@ -148,6 +158,13 @@ instance FromJSON Agg where
     parseJSON (String "min")   = return MinAgg
     parseJSON (String "max")   = return MaxAgg
     parseJSON _                = fail "Illegal aggFunc."
+
+instance ToJSON Agg where
+    toJSON AvgAgg   = "avg"
+    toJSON SumAgg   = "sum"
+    toJSON CountAgg = "count"
+    toJSON MinAgg   = "min"
+    toJSON MaxAgg   = "max"
 
 instance ToJSON GroupAggR where
     toJSON (GroupAggR (Left tg) res) =
@@ -161,9 +178,22 @@ instance ToJSON GroupAggR where
 
 makeLenses ''TimeseriesDB
 
-$(deriveJSON defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS)
-$(deriveJSON defaultOptions{rejectUnknownFields = True} ''TS)
-$(deriveFromJSON defaultOptions{rejectUnknownFields = True} ''QueryModel)
+$(deriveJSON AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS)
+$(deriveJSON AS.defaultOptions{rejectUnknownFields = True} ''TS)
+$(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''QueryModel)
+$(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''GroupAggR)
+$(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''QueryR)
+
+deriveElmDef ELM.defaultOptions ''Agg
+deriveElmDef ELM.defaultOptions ''GroupBy
+deriveElmDef ELM.defaultOptions ''Sort
+deriveElmDef ELM.defaultOptions ''Tag
+deriveElmDef ELM.defaultOptions ''AggR
+deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''GroupAggR
+deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''TS
+deriveElmDef AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS
+deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''QueryModel
+deriveElmDef ELM.defaultOptions ''QueryR
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''Tag

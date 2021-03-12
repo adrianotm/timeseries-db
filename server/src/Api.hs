@@ -8,20 +8,22 @@
 {-# LANGUAGE TypeOperators         #-}
 module Api where
 
-import           Control.Exception.Base     (bracket)
+import           Control.Exception.Base      (bracket)
 
-import           Control.Monad.Reader       (MonadReader (ask),
-                                             ReaderT (runReaderT))
-import           Data.Acid                  as A (AcidState)
-import           Data.Acid.Advanced         as AA (query', update')
-import           Data.Aeson                 (FromJSON, ToJSON)
-import qualified Data.ByteString.Lazy.Char8 as C
-import           Network.Wai                (Application)
+import           Control.Monad.Reader        (MonadReader (ask),
+                                              ReaderT (runReaderT))
+import           Data.Acid                   as A (AcidState)
+import           Data.Acid.Advanced          as AA (query', update')
+import           Data.Aeson                  (FromJSON, ToJSON)
+import qualified Data.ByteString.Lazy.Char8  as C
+import           Network.Wai                 (Application, Middleware)
+import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors,
+                                              simpleCorsResourcePolicy)
 import           Repository.Handlers
-import           Repository.Model           (DTS, QueryModel, QueryR (..), TS,
-                                             Tag, TimeseriesDB, Timestamp,
-                                             emptyQM)
-import           Repository.Utils           (illegalQM)
+import           Repository.Model            (DTS, QueryModel, QueryR (..), TS,
+                                              Tag, TimeseriesDB, Timestamp,
+                                              emptyQM)
+import           Repository.Utils            (illegalQM)
 import           Servant
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
@@ -90,5 +92,15 @@ tsHandlers = insertData
 serverT :: TSServer API
 serverT = tsHandlers
 
+corsPolicy :: Middleware
+corsPolicy = cors (const $ Just policy)
+    where
+        policy = simpleCorsResourcePolicy
+          {
+              corsMethods = [ "GET", "POST", "PUT", "OPTIONS" ],
+              corsOrigins = Just (["http://localhost:8000"], False),
+              corsRequestHeaders = [ "Content-Type" ]
+          }
+
 app :: AcidState TimeseriesDB -> Application
-app db = serve api $ hoistServer api (`runReaderT` db) serverT
+app db = corsPolicy $ serve api $ hoistServer api (`runReaderT` db) serverT

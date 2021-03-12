@@ -44,6 +44,7 @@ extra-deps:
   - binary-0.8.8.0
   - parsec-3.1.14.0
   - text-1.2.4.1
+  - servant-elm-0.7.2
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:

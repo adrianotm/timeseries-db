@@ -8,57 +8,116 @@ module Main exposing (..)
 
 
 import Browser
-import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
-
-
+import File exposing (File)
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
+import Either exposing (Either(..))
+import Api exposing (..)
+import Http
+import Json.Decode as D
+import Task
 
 -- MAIN
 
 
 main =
-  Browser.sandbox { init = init, update = update, view = view }
+  Browser.element
+    { init = init
+    , update = update
+    , subscriptions = subscriptions
+    , view = view
+    }
+
+-- SUBSCRIPTIONS
 
 
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
 
 -- MODEL
 
 
-type alias Model = Int
+type alias Model
+  = List TS
 
 
-init : Model
-init =
-  0
-
-
+init : () -> (Model, Cmd Msg)
+init _ =
+  ( []
+  , Cmd.none  )
 
 -- UPDATE
 
-
 type Msg
-  = Increment
-  | Decrement
+  = ProcessUploadTS (List File)
+  | UploadMsg String
+  | GetTS
+  | GotTS (List TS)
 
+uploadMsg : Result Http.Error (()) -> Msg
+uploadMsg res = 
+  case res of
+    Err e -> UploadMsg (Debug.toString e)
+    Ok _ -> UploadMsg "Success upload."
 
-update : Msg -> Model -> Model
-update msg model =
+handleTS : Result Http.Error ((List TS)) -> Msg
+handleTS res = 
+  case res of
+    Err e -> UploadMsg (Debug.toString e)
+    Ok tss -> GotTS tss
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model = 
   case msg of
-    Increment ->
-      model + 1
-
-    Decrement ->
-      model - 1
-
-
+    ProcessUploadTS files -> 
+      case List.head files of
+        Just file -> (model, postTimeseries file uploadMsg)
+        Nothing -> (model, Cmd.none)
+    UploadMsg resMsg -> let _ = Debug.log "Upload Message" resMsg in 
+      (model, Cmd.none)
+    GetTS -> (model, getAllTimeseries handleTS)
+    GotTS tss -> (tss, Cmd.none)
 
 -- VIEW
 
+tagToString : Tag -> String
+tagToString tag =
+  case tag of
+    Left s -> s
+    Right s -> Debug.toString s
+
+toTableRow : TS -> Html Msg
+toTableRow ts = 
+  tr []
+    [ td [] [ text (Debug.toString ts.timestamp)]
+    , td [] [ text (tagToString ts.tag)]
+    , td [] [ text (Debug.toString ts.value)]
+    ]
 
 view : Model -> Html Msg
-view model =
+view model = 
   div []
-    [ button [ onClick Decrement ] [ text "-" ]
-    , div [] [ text (String.fromInt model) ]
-    , button [ onClick Increment ] [ text "+" ]
+    [
+      input
+        [ type_ "file"
+        , multiple False
+        , on "change" (D.map ProcessUploadTS filesDecoder)
+        ]
+        []
+    , button [ onClick GetTS ] [ text "Get TS" ]
+    , table
+      []
+      (( thead []
+          [ th [] [ text "Timestamp" ]
+          , th [] [ text "Tag" ]
+          , th [] [ text "Value" ]
+          ]
+       ) :: List.map toTableRow model
+      )
     ]
+
+filesDecoder : D.Decoder (List File)
+filesDecoder =
+  D.at ["target","files"] (D.list File.decoder)
