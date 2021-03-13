@@ -15,6 +15,7 @@ import Html.Styled.Attributes exposing (..)
 import Html.Styled.Events exposing (..)
 import Styles exposing (..)
 import Json.Decode as D
+import Maybe exposing (..)
 
 -- MAIN
 
@@ -30,11 +31,24 @@ main =
 -- MODEL
 
 type alias Model
-  = { tss : List TS, serverMsg : String }
+  = { tss : List TS, serverMsg : String, queryM : QueryModel }
+
+emptyQM = 
+  { gt = Nothing 
+  , lt = Nothing
+  , ge = Nothing
+  , le = Nothing
+  , tsEq = Nothing
+  , tagEq = Nothing
+  , aggFunc = Nothing
+  , groupBy = Nothing
+  , sort = Nothing
+  , limit = Nothing
+  }
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( {tss = [], serverMsg = ""}
+  ( { tss = [], serverMsg = "", queryM = emptyQM }
   , Cmd.none  )
 
 -- UPDATE
@@ -44,6 +58,7 @@ type Msg
   | UploadTS File
   | UpdateTS File
   | DeleteTS File
+  | ChangeQM QueryModel
   | ClearAllTS
   | ApiMsg String
   | GetTS
@@ -128,7 +143,9 @@ update msg model =
     GetTS -> 
       (model, getAllTimeseries handleTS)
     GotTS tss -> 
-      ({ tss = tss, serverMsg = "Success" }, Cmd.none)
+      ({ model | tss = tss, serverMsg = "Success." }, Cmd.none)
+    ChangeQM qm ->
+      ({ model | queryM = qm }, Cmd.none)
     NoOp -> 
       (model, Cmd.none)
 
@@ -141,12 +158,12 @@ view model =
     wrapped []
     [
       actionWrapper []
-        [
-          styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
+        [ queryView model
+        , styledButton [ onClick GetTS ] [ text "Query Timeseries" ] 
+        , styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
         , styledButton [ onClick (RequestFile UpdateTS) ] [text "Update Timeseries"]
         , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
         , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
-        , styledButton [ onClick GetTS ] [ text "Get Timeseries" ] 
         ]
         , styledTable
           []
@@ -158,12 +175,51 @@ view model =
               ]
              ) :: List.map toTableRow model.tss
            )
-         , serverMsg model.serverMsg 
+         , serverMsgView model.serverMsg 
       ]
   ]
 
-serverMsg : String -> Html Msg
-serverMsg s = 
+parseQ : Maybe x -> String
+parseQ = withDefault "" << Maybe.map Debug.toString
+
+changeGT : QueryModel -> String -> Msg
+changeGT queryM = 
+  withDefault (ChangeQM { queryM | gt = Nothing }) << 
+  Maybe.map (\ngt -> ChangeQM { queryM | gt = Just ngt}) << 
+  String.toInt 
+
+changeLT : QueryModel -> String -> Msg
+changeLT queryM = 
+  withDefault (ChangeQM { queryM | lt = Nothing }) << 
+  Maybe.map (\nlt -> ChangeQM { queryM | lt = Just nlt}) << 
+  String.toInt 
+
+queryView : Model -> Html Msg
+queryView model = 
+  queryWrapper [] 
+  [ text ("From POSIX time (in millisec) - " 
+      ++ withDefault "" (Maybe.map formatTimstamp model.queryM.gt))
+  , input 
+    [ 
+      type_ "number"
+    , Html.Styled.Attributes.min "0"
+    , value (parseQ model.queryM.gt)
+    , onInput <| changeGT model.queryM 
+    ] []
+  , br [] []
+  , text ("To POSIX time (in millisec) - "
+      ++ withDefault "" (Maybe.map formatTimstamp model.queryM.lt))
+  , input 
+    [ 
+      type_ "number"
+    , Html.Styled.Attributes.min "0"
+    , value (parseQ model.queryM.lt)
+    , onInput <| changeLT model.queryM 
+    ] []
+  ]
+
+serverMsgView : String -> Html Msg
+serverMsgView s = 
   case s of
     "" -> textWrapper [] []
     error -> textWrapper [] 

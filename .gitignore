@@ -1,6 +1,6 @@
 .stack-work
 state/
-demoTS.json
+demoTS*
 stack.yaml.lock
 client/elm-stuff/
 client/index.html

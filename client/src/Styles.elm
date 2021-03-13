@@ -33,7 +33,7 @@ actionWrapper =
   styled Html.Styled.div 
   [
     displayFlex
-  , flex3 (int 0) (int 0) (pct 10)
+  , flex3 (int 0) (int 0) (pct 30)
   , flexDirection column
   , marginRight (px 10)
   ]
@@ -80,7 +80,7 @@ styledButton : List (Attribute msg) -> List (Html msg) -> Html msg
 styledButton = 
   styled button
   [
-    backgroundColor (hex "4D6A6D")
+    backgroundColor (hex "668C8F")
   , textAlign center
   , display inlineBlock
   , marginBottom (Css.em 0.5)
@@ -92,8 +92,9 @@ styledButton =
   , color (hex "FFFFFF")
   , outline none
   , fontFamily sansSerif
+  , Css.width (pct 50)
   , hover [
-       backgroundColor (hex "5D8083")
+       backgroundColor (hex "7CA0A2")
      ]
   ]
 
@@ -103,6 +104,16 @@ textWrapper =
    [
       flex3 (int 0) (int 0) (pct 20)
    ,  marginLeft (Css.em 1)
+   ]
+
+queryWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+queryWrapper =
+   styled div
+   [
+      displayFlex
+   , flexDirection column
+   , alignItems Css.start
+   , marginBottom (Css.em 1)
    ]
 
 theme : { secondary : Color, primary : Color }
