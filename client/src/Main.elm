@@ -9,14 +9,14 @@ module Main exposing (..)
 
 import Browser
 import File exposing (File)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Either exposing (Either(..))
+import Either exposing (Either(..), unpack)
 import Api exposing (..)
 import Http
 import Json.Decode as D
-import Task
+import Css exposing (..)
+import Html.Styled exposing (..)
+import Html.Styled.Attributes exposing (..)
+import Html.Styled.Events exposing (..)
 
 -- MAIN
 
@@ -26,7 +26,7 @@ main =
     { init = init
     , update = update
     , subscriptions = subscriptions
-    , view = view
+    , view = toUnstyled << view
     }
 
 -- SUBSCRIPTIONS
@@ -51,7 +51,7 @@ init _ =
 -- UPDATE
 
 type Msg
-  = ProcessUploadTS (List File)
+  = UploadTS (List File)
   | UploadMsg String
   | GetTS
   | GotTS (List TS)
@@ -71,7 +71,7 @@ handleTS res =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
   case msg of
-    ProcessUploadTS files -> 
+    UploadTS files -> 
       case List.head files of
         Just file -> (model, postTimeseries file uploadMsg)
         Nothing -> (model, Cmd.none)
@@ -82,41 +82,97 @@ update msg model =
 
 -- VIEW
 
-tagToString : Tag -> String
-tagToString tag =
-  case tag of
-    Left s -> s
-    Right s -> Debug.toString s
+wrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+wrapper = 
+  styled Html.Styled.div 
+  [
+    backgroundColor theme.primary
+  , Css.height (vh 100)
+  , Css.width (vw 100)
+  ]
+
+wrapped : List (Attribute msg) -> List (Html msg) -> Html msg
+wrapped = 
+  styled Html.Styled.div 
+  [
+    paddingLeft (vw 10)
+  , paddingRight (vw 10)
+  , paddingTop (vh 5)
+  ]
+
+actionWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+actionWrapper = 
+  styled Html.Styled.div 
+  [
+    displayFlex
+  , justifyContent spaceAround
+  , marginBottom (px 10)
+  ]
+
+
+styledTable : List (Attribute msg) -> List (Html msg) -> Html msg
+styledTable =
+  styled Html.Styled.table
+  [
+    margin auto
+  , borderCollapse collapse
+  , tableLayout fixed
+  , border3 (px 1) solid (rgb 255 0 0)
+  , Css.width (pct 50)
+  ]
+
+styleT : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> List (Html msg) -> Html msg
+styleT elem = 
+  styled elem
+  [
+    border3 (px 1) solid (rgb 255 0 0)
+  , padding (rem 0.5)
+  , textAlign center
+  ]
+
+theme : { secondary : Color, primary : Color }
+theme =
+    { primary = hex "FFA269"
+    , secondary = rgb 250 240 230
+    }
+
+view : Model -> Html Msg
+view model = 
+  wrapper [] 
+  [
+    wrapped []
+    [
+      actionWrapper []
+        [
+          input
+            [ type_ "file"
+            , placeholder "Upload timeseries"
+            , multiple False
+            , on "change" (D.map UploadTS filesDecoder)
+            ]
+            []
+        , button [ onClick GetTS ] [ text "Get TS" ] 
+        ]
+        , styledTable
+          []
+          (( thead []
+              [ styleT th [] [ text "Timestamp" ]
+              , styleT th [] [ text "Tag" ]
+              , styleT th [] [ text "Value" ]
+              ]
+           ) :: List.map toTableRow model
+        )
+      ]
+  ]
 
 toTableRow : TS -> Html Msg
 toTableRow ts = 
   tr []
-    [ td [] [ text (Debug.toString ts.timestamp)]
-    , td [] [ text (tagToString ts.tag)]
-    , td [] [ text (Debug.toString ts.value)]
+    [ styleT td [] [ text (Debug.toString ts.timestamp)]
+    , styleT td [] [ text (unpack identity Debug.toString ts.tag)]
+    , styleT td [] [ text (Debug.toString ts.value)]
     ]
 
-view : Model -> Html Msg
-view model = 
-  div []
-    [
-      input
-        [ type_ "file"
-        , multiple False
-        , on "change" (D.map ProcessUploadTS filesDecoder)
-        ]
-        []
-    , button [ onClick GetTS ] [ text "Get TS" ]
-    , table
-      []
-      (( thead []
-          [ th [] [ text "Timestamp" ]
-          , th [] [ text "Tag" ]
-          , th [] [ text "Value" ]
-          ]
-       ) :: List.map toTableRow model
-      )
-    ]
 
 filesDecoder : D.Decoder (List File)
 filesDecoder =

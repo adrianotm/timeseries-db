@@ -227,9 +227,9 @@ postTimeseries body toMsg =
             { method =
                 "POST"
             , headers =
-                []
+                [ Http.header "Content-Type" "application/json" ]
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
@@ -260,7 +260,7 @@ putTimeseries body toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
@@ -291,7 +291,7 @@ getTimeseries body toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
@@ -347,7 +347,7 @@ deleteTimeseries body toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
@@ -378,7 +378,7 @@ deleteAllTimeseries toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
@@ -412,7 +412,7 @@ getTimeseriesTimestamps query_bounded toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     , "timestamps"
                     ]
@@ -440,7 +440,7 @@ getTimeseriesTags toMsg =
             , headers =
                 []
             , url =
-                Url.Builder.crossOrigin "http://localhost:8001"
+                Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     , "tags"
                     ]

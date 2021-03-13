@@ -2,5 +2,5 @@
 state/
 demoTS.json
 stack.yaml.lock
-client/elm-stuff
+client/elm-stuff/
 client/index.html
