@@ -1,22 +1,20 @@
 module Main exposing (..)
 
--- Press buttons to increment and decrement a counter.
---
--- Read how it works:
---   https://guide.elm-lang.org/architecture/buttons.html
---
-
-
 import Browser
 import File exposing (File)
+import File.Select as Select
 import Either exposing (Either(..), unpack)
 import Api exposing (..)
-import Http
-import Json.Decode as D
+import Http exposing (Error(..))
+import Date exposing (..)
+import Time exposing (..)
 import Css exposing (..)
+import Iso8601 exposing (..)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (..)
 import Html.Styled.Events exposing (..)
+import Styles exposing (..)
+import Json.Decode as D
 
 -- MAIN
 
@@ -25,116 +23,116 @@ main =
   Browser.element
     { init = init
     , update = update
-    , subscriptions = subscriptions
+    , subscriptions = always Sub.none
     , view = toUnstyled << view
     }
 
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none
-
 -- MODEL
 
-
 type alias Model
-  = List TS
-
+  = { tss : List TS, serverMsg : String }
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( []
+  ( {tss = [], serverMsg = ""}
   , Cmd.none  )
 
 -- UPDATE
 
 type Msg
-  = UploadTS (List File)
-  | UploadMsg String
+  = RequestFile (File -> Msg)
+  | UploadTS File
+  | UpdateTS File
+  | DeleteTS File
+  | ClearAllTS
+  | ApiMsg String
   | GetTS
   | GotTS (List TS)
+  | NoOp
 
-uploadMsg : Result Http.Error (()) -> Msg
-uploadMsg res = 
+parseError : String -> Maybe String
+parseError = Result.toMaybe << D.decodeString D.string
+
+errToString : ErrorDetailed -> String
+errToString err = 
+  case err of
+    Api.Timeout ->
+      "Timeout exceeded."
+    Api.NetworkError ->
+      "Network error"
+    Api.BadStatus metadata body ->
+       (
+         String.fromInt metadata.statusCode 
+         ++ " " 
+         ++ metadata.statusText 
+         ++ "\n\n"
+         ++ body
+        )
+    Api.BadUrl url ->
+      "Bad url " ++ url
+    Api.BadBody body ->
+      "Bad body " ++ body
+
+responseToError : Http.Response String -> Result ErrorDetailed ()
+responseToError httpResponse =
+  case httpResponse of
+        Http.BadUrl_ url ->
+            Err (Api.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Api.Timeout
+
+        Http.NetworkError_ ->
+            Err Api.NetworkError
+
+        Http.BadStatus_ metadata body ->
+            Err (Api.BadStatus metadata body)
+
+        Http.GoodStatus_ _ _ ->
+            Ok ()
+
+
+apiMsg : Result ErrorDetailed (()) -> Msg
+apiMsg res = 
   case res of
-    Err e -> UploadMsg (Debug.toString e)
-    Ok _ -> UploadMsg "Success upload."
+    Err e -> ApiMsg <| errToString e
+    Ok _ -> ApiMsg "Success."
+
+basicApiMsg : Result Http.Error (()) -> Msg
+basicApiMsg res = 
+  case res of
+    Err e -> ApiMsg (Debug.toString e)
+    Ok _ -> ApiMsg "Success."
 
 handleTS : Result Http.Error ((List TS)) -> Msg
 handleTS res = 
   case res of
-    Err e -> UploadMsg (Debug.toString e)
+    Err e -> ApiMsg (Debug.toString e)
     Ok tss -> GotTS tss
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
   case msg of
-    UploadTS files -> 
-      case List.head files of
-        Just file -> (model, postTimeseries file uploadMsg)
-        Nothing -> (model, Cmd.none)
-    UploadMsg resMsg -> let _ = Debug.log "Upload Message" resMsg in 
+    RequestFile fileToMsg ->
+      (model, Select.file ["application/json"] fileToMsg)
+    UploadTS file ->
+      (model, postTimeseries file apiMsg responseToError)
+    UpdateTS file ->
+      (model, putTimeseries file apiMsg responseToError)
+    DeleteTS file ->
+      (model, deleteTimeseries file apiMsg responseToError)
+    ClearAllTS -> 
+      ({ model | tss = [] }, deleteAllTimeseries basicApiMsg)
+    ApiMsg resMsg -> 
+      ({ model | serverMsg = resMsg }, Cmd.none)
+    GetTS -> 
+      (model, getAllTimeseries handleTS)
+    GotTS tss -> 
+      ({ tss = tss, serverMsg = "Success" }, Cmd.none)
+    NoOp -> 
       (model, Cmd.none)
-    GetTS -> (model, getAllTimeseries handleTS)
-    GotTS tss -> (tss, Cmd.none)
 
 -- VIEW
-
-wrapper : List (Attribute msg) -> List (Html msg) -> Html msg
-wrapper = 
-  styled Html.Styled.div 
-  [
-    backgroundColor theme.primary
-  , Css.height (vh 100)
-  , Css.width (vw 100)
-  ]
-
-wrapped : List (Attribute msg) -> List (Html msg) -> Html msg
-wrapped = 
-  styled Html.Styled.div 
-  [
-    paddingLeft (vw 10)
-  , paddingRight (vw 10)
-  , paddingTop (vh 5)
-  ]
-
-actionWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
-actionWrapper = 
-  styled Html.Styled.div 
-  [
-    displayFlex
-  , justifyContent spaceAround
-  , marginBottom (px 10)
-  ]
-
-
-styledTable : List (Attribute msg) -> List (Html msg) -> Html msg
-styledTable =
-  styled Html.Styled.table
-  [
-    margin auto
-  , borderCollapse collapse
-  , tableLayout fixed
-  , border3 (px 1) solid (rgb 255 0 0)
-  , Css.width (pct 50)
-  ]
-
-styleT : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> List (Html msg) -> Html msg
-styleT elem = 
-  styled elem
-  [
-    border3 (px 1) solid (rgb 255 0 0)
-  , padding (rem 0.5)
-  , textAlign center
-  ]
-
-theme : { secondary : Color, primary : Color }
-theme =
-    { primary = hex "FFA269"
-    , secondary = rgb 250 240 230
-    }
 
 view : Model -> Html Msg
 view model = 
@@ -144,36 +142,45 @@ view model =
     [
       actionWrapper []
         [
-          input
-            [ type_ "file"
-            , placeholder "Upload timeseries"
-            , multiple False
-            , on "change" (D.map UploadTS filesDecoder)
-            ]
-            []
-        , button [ onClick GetTS ] [ text "Get TS" ] 
+          styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
+        , styledButton [ onClick (RequestFile UpdateTS) ] [text "Update Timeseries"]
+        , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
+        , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
+        , styledButton [ onClick GetTS ] [ text "Get Timeseries" ] 
         ]
         , styledTable
           []
-          (( thead []
+          (
+            ( styledTHead []
               [ styleT th [] [ text "Timestamp" ]
               , styleT th [] [ text "Tag" ]
               , styleT th [] [ text "Value" ]
               ]
-           ) :: List.map toTableRow model
-        )
+             ) :: List.map toTableRow model.tss
+           )
+         , serverMsg model.serverMsg 
       ]
   ]
 
+serverMsg : String -> Html Msg
+serverMsg s = 
+  case s of
+    "" -> textWrapper [] []
+    error -> textWrapper [] 
+            ( h3 [] [ text  "Server message: " ]
+              :: (List.intersperse (br [] []) <| 
+                    List.map text <| 
+                    String.lines <| error)
+            )
+
+
+formatTimstamp : Int -> String
+formatTimstamp = fromTime << millisToPosix 
+
 toTableRow : TS -> Html Msg
 toTableRow ts = 
-  tr []
-    [ styleT td [] [ text (Debug.toString ts.timestamp)]
+  styledTR []
+    [ styleT td [] [ text (formatTimstamp ts.timestamp)]
     , styleT td [] [ text (unpack identity Debug.toString ts.tag)]
     , styleT td [] [ text (Debug.toString ts.value)]
     ]
-
-
-filesDecoder : D.Decoder (List File)
-filesDecoder =
-  D.at ["target","files"] (D.list File.decoder)

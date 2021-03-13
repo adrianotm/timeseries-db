@@ -48,33 +48,33 @@ insertData :: [TS] -> AcidReaderT ()
 insertData ts = ask >>= flip update' (InsertTS ts)
                            >>= \case
                                   [] -> return ()
-                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
+                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
 
 updateData :: [TS] -> AcidReaderT ()
 updateData ts = ask >>= flip update' (UpdateTS ts)
                            >>= \case
                                   [] -> return ()
-                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
+                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
 
 deleteData :: [DTS] -> AcidReaderT ()
 deleteData dts = ask >>= flip update' (ClearTS dts)
                            >>= \case
                                   [] -> return ()
-                                  errors -> throwError $ err404 { errBody = C.pack $ unlines errors}
+                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
 
 getData :: AcidReaderT [TS]
 getData = queryData emptyQM >>= \(QR r) -> either return (const $ throwError err500) r
 
 queryData :: QueryModel
            -> AcidReaderT QueryR
-queryData qm  | fst $ illegalQM qm = throwError $ err404 { errBody = C.pack $ snd $ illegalQM qm }
+queryData qm  | fst $ illegalQM qm = throwError $ err400 { errBody = C.pack $ snd $ illegalQM qm }
               | otherwise = ask >>= flip query' (FilterTS qm) >>= either
-                                                                  (\m -> throwError $ err404 { errBody = C.pack m })
+                                                                  (\m -> throwError $ err400 { errBody = C.pack m })
                                                                   return
 
 timestamps :: Bool -> AcidReaderT [Timestamp]
 timestamps b = ask >>= flip query' (AllTimestamps b)
-                        >>= either (\m -> throwError $ err404 { errBody = C.pack m }) return
+                        >>= either (\m -> throwError $ err400 { errBody = C.pack m }) return
 
 tags :: AcidReaderT [Tag]
 tags = ask >>= flip query' AllTags
@@ -97,7 +97,7 @@ corsPolicy = cors (const $ Just policy)
     where
         policy = simpleCorsResourcePolicy
           {
-              corsMethods = [ "GET", "POST", "PUT", "OPTIONS" ],
+              corsMethods = [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
               corsOrigins = Just (["http://localhost:8000"], False),
               corsRequestHeaders = [ "Content-Type" ]
           }

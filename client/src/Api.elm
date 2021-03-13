@@ -20,6 +20,13 @@ type alias TS  =
    , value: Val
    }
 
+type ErrorDetailed
+    = BadUrl String
+    | Timeout
+    | NetworkError
+    | BadStatus Http.Metadata String
+    | BadBody String
+
 jsonDecTimestamp: Json.Decode.Decoder Int
 jsonDecTimestamp = Json.Decode.int
 
@@ -215,8 +222,8 @@ jsonEncDTS  val =
    ]
 
 
-postTimeseries : File -> (Result Http.Error  (())  -> msg) -> Cmd msg
-postTimeseries body toMsg =
+postTimeseries : File -> (Result ErrorDetailed (())  -> msg) -> (Http.Response String -> Result ErrorDetailed (())) -> Cmd msg
+postTimeseries body toMsg handleRes =
     let
         params =
             List.filterMap identity
@@ -236,18 +243,15 @@ postTimeseries body toMsg =
             , body =
                 Http.fileBody body
             , expect =
-                Http.expectString 
-                     (\x -> case x of
-                     Err e -> toMsg (Err e)
-                     Ok _ -> toMsg (Ok ()))
+                Http.expectStringResponse toMsg handleRes
             , timeout 
                = Nothing
             , tracker 
                = Nothing
             }
 
-putTimeseries : (List TS) -> (Result Http.Error  (())  -> msg) -> Cmd msg
-putTimeseries body toMsg =
+putTimeseries : File -> (Result ErrorDetailed (())  -> msg) -> (Http.Response String -> Result ErrorDetailed (())) -> Cmd msg
+putTimeseries file toMsg handleRes =
     let
         params =
             List.filterMap identity
@@ -258,19 +262,16 @@ putTimeseries body toMsg =
             { method =
                 "PUT"
             , headers =
-                []
+                [ Http.header "Content-Type" "application/json" ]
             , url =
                 Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
                     ]
                     params
             , body =
-                Http.jsonBody ((Json.Encode.list jsonEncTS) body)
+                Http.fileBody file
             , expect =
-                Http.expectString 
-                     (\x -> case x of
-                     Err e -> toMsg (Err e)
-                     Ok _ -> toMsg (Ok ()))
+                Http.expectStringResponse toMsg handleRes
             , timeout =
                 Nothing
             , tracker =
@@ -333,8 +334,8 @@ getAllTimeseries toMsg =
                 Nothing
             }
 
-deleteTimeseries : (List DTS) -> (Result Http.Error  (())  -> msg) -> Cmd msg
-deleteTimeseries body toMsg =
+deleteTimeseries : File -> (Result ErrorDetailed (())  -> msg) -> (Http.Response String -> Result ErrorDetailed (())) -> Cmd msg
+deleteTimeseries file toMsg handleRes =
     let
         params =
             List.filterMap identity
@@ -352,12 +353,9 @@ deleteTimeseries body toMsg =
                     ]
                     params
             , body =
-                Http.jsonBody ((Json.Encode.list jsonEncDTS) body)
+                Http.fileBody file
             , expect =
-                Http.expectString 
-                     (\x -> case x of
-                     Err e -> toMsg (Err e)
-                     Ok _ -> toMsg (Ok ()))
+                Http.expectStringResponse toMsg handleRes
             , timeout =
                 Nothing
             , tracker =
