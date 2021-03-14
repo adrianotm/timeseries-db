@@ -54,21 +54,6 @@ type Ix = Int
 type Limit = Int
 type Tag = String
 
--- newtype Tag = Tag (Either String Int)
---     deriving (Eq, Ord, Hashable, Generic)
-
--- instance Show Tag where
---     show (Tag t) = either show show t
-
--- instance FromJSON Tag where
---     parseJSON (String s) = return $ Tag (Left $ unpack s)
---     parseJSON (Number n) = maybe (fail "Invalid number.") (return . Tag . Right) (toBoundedInteger n)
---     parseJSON _ = fail "Tag type not allowed. Expected Int or String."
-
--- instance ToJSON Tag where
---     toJSON (Tag t) = either toJSON toJSON t
---     toEncoding (Tag t) = either toEncoding toEncoding t
-
 data GroupBy = GByTimestamp | GByTag
     deriving (Show)
 
@@ -85,7 +70,7 @@ type CollectR = [TS]
 newtype AggR = AggR { result :: Val }
                 deriving(Show, Generic, ToJSON, FromJSON)
 
-data GroupAggR = GroupAggR { _tag :: Either Tag Timestamp, _result :: Val}
+data GroupAggR = GroupAggR { _group :: Either Tag Timestamp, _result :: Val}
                 deriving(Show, Generic)
 
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
@@ -116,8 +101,6 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , limit   :: Maybe Limit
                     }
         deriving (Generic, Show)
-
-emptyQM = Q Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
 instance (SafeCopy a, Typeable a) => SafeCopy (DL.DList a) where
     getCopy = contain $ fmap DL.fromList safeGet
@@ -169,13 +152,13 @@ instance ToJSON Agg where
 
 instance ToJSON GroupAggR where
     toJSON (GroupAggR (Left tg) res) =
-        object ["tag" .= tg, "result" .= res]
+        object ["group" .= tg, "result" .= res]
     toJSON (GroupAggR (Right ts) res) =
-        object ["timestamp" .= ts, "result" .= res]
+        object ["group" .= ts, "result" .= res]
     toEncoding (GroupAggR (Left tg) res) =
-        pairs ("tag" .= tg <> "result" .= res)
+        pairs ("group" .= tg <> "result" .= res)
     toEncoding (GroupAggR (Right ts) res) =
-        pairs ("timestamp" .= ts <> "result" .= res)
+        pairs ("group" .= ts <> "result" .= res)
 
 makeLenses ''TimeseriesDB
 

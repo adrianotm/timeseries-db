@@ -36,8 +36,8 @@ type GroupEither v = Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v))
 type AggRes a v = Either a (GroupEither v)
 
 noDataErr :: Either Tag Timestamp -> String
-noDataErr (Left tg)  = "No data for tag " ++ show tg
-noDataErr (Right ts) = "No data for timestamp " ++ show ts
+noDataErr (Left tg)  = "No data for tag " ++ show tg ++ "."
+noDataErr (Right ts) = "No data for timestamp " ++ show ts ++ "."
 
 getTS :: V.Vector TS -> Ix -> TS
 getTS = (V.!)

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 49bfcd729f19753118800d1347039573d6ef25d30801eaecc73af8218cb3a44a
+-- hash: f80cbbb52f42e46261b1bb5628a416bdda186654201dc13d8f6c7b6c366fbb74
 
 name:           diplomska
 version:        0.1.0.0
@@ -59,6 +59,7 @@ library
     , elm-bridge
     , hashable
     , http-media
+    , http-types
     , lens
     , lucid
     , mtl
@@ -102,6 +103,7 @@ executable server
     , elm-bridge
     , hashable
     , http-media
+    , http-types
     , lens
     , lucid
     , mtl

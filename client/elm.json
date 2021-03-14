@@ -17,6 +17,7 @@
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "justinmimbs/date": "3.2.1",
+            "perzanko/elm-loading": "2.0.4",
             "rtfeldman/elm-css": "16.1.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.3",
             "toastal/either": "3.5.2"

@@ -60,8 +60,6 @@ jsonEncTS  val =
    , ("value", jsonEncVal val.value)
    ]
 
-
-
 type alias QueryModel  =
    { gt: (Maybe Timestamp)
    , lt: (Maybe Timestamp)
@@ -104,19 +102,16 @@ jsonEncQueryModel  val =
    , ("limit", (maybeEncode (jsonEncLimit)) val.limit)
    ]
 
-
-
 type alias Tag  = String
 
 jsonDecTag : Json.Decode.Decoder ( Tag )
 jsonDecTag = Json.Decode.string
-    
 
 jsonEncTag : Tag -> Value
 jsonEncTag = Json.Encode.string
 
 type Sort  =
-    Asc 
+    Asc
     | Desc 
 
 jsonDecSort : Json.Decode.Decoder ( Sort )
@@ -127,8 +122,8 @@ jsonDecSort =
 jsonEncSort : Sort -> Value
 jsonEncSort  val =
     case val of
-        Asc -> Json.Encode.string "Asc"
-        Desc -> Json.Encode.string "Desc"
+        Asc -> Json.Encode.string "asc"
+        Desc -> Json.Encode.string "desc"
 
 type GroupBy  =
     GByTimestamp 
@@ -142,8 +137,8 @@ jsonDecGroupBy =
 jsonEncGroupBy : GroupBy -> Value
 jsonEncGroupBy  val =
     case val of
-        GByTimestamp -> Json.Encode.string "GByTimestamp"
-        GByTag -> Json.Encode.string "GByTag"
+        GByTimestamp -> Json.Encode.string "timestamp"
+        GByTag -> Json.Encode.string "tag"
 
 
 type Agg  =
@@ -161,11 +156,11 @@ jsonDecAgg =
 jsonEncAgg : Agg -> Value
 jsonEncAgg  val =
     case val of
-        AvgAgg -> Json.Encode.string "AvgAgg"
-        SumAgg -> Json.Encode.string "SumAgg"
-        CountAgg -> Json.Encode.string "CountAgg"
-        MinAgg -> Json.Encode.string "MinAgg"
-        MaxAgg -> Json.Encode.string "MaxAgg"
+        AvgAgg -> Json.Encode.string "avg"
+        SumAgg -> Json.Encode.string "sum"
+        CountAgg -> Json.Encode.string "count"
+        MinAgg -> Json.Encode.string "min"
+        MaxAgg -> Json.Encode.string "max"
 
 
 type alias CollectR = List TS
@@ -176,25 +171,29 @@ jsonDecQueryR : Json.Decode.Decoder ( QueryR )
 jsonDecQueryR = Json.Decode.oneOf [map Left (Json.Decode.list jsonDecTS), map (\k -> Right (Left k)) (Json.Decode.list jsonDecGroupAggR), map (\k -> Right (Right k)) jsonDecAggR]
 
 type alias GroupAggR  =
-   { tag: (Either Tag Timestamp)
+   { group: (Either Tag Timestamp)
    , result: Val
    }
 
 jsonDecGroupAggR : Json.Decode.Decoder ( GroupAggR )
 jsonDecGroupAggR =
-   Json.Decode.succeed (\p_tag p_result -> {tag = p_tag, result = p_result})
-   |> required "_tag" (Json.Decode.oneOf [map Left jsonDecTag, map Right jsonDecTimestamp])
-   |> required "_result" (jsonDecVal)
+   Json.Decode.succeed (\p_group p_result -> {group = p_group, result = p_result})
+   |> required "group" (Json.Decode.oneOf [map Left jsonDecTag, map Right jsonDecTimestamp])
+   |> required "result" (jsonDecVal)
 
 
-type alias AggR  = Val
+type alias AggR  = { result : Val }
 
 jsonDecAggR : Json.Decode.Decoder ( AggR )
-jsonDecAggR =
-    jsonDecVal
+jsonDecAggR = 
+   Json.Decode.succeed (\p_res -> {result = p_res})
+   |> required "result" jsonDecVal
 
 jsonEncAggR : AggR -> Value
-jsonEncAggR  val = jsonEncVal val
+jsonEncAggR val = 
+   Json.Encode.object
+   [ ("result", jsonEncVal val.result)
+   ]
 
 
 type alias DTS  =
@@ -228,7 +227,7 @@ postTimeseries body toMsg handleRes =
             { method =
                 "POST"
             , headers =
-                [ Http.header "Content-Type" "application/json" ]
+                []
             , url =
                 Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
@@ -256,7 +255,7 @@ putTimeseries file toMsg handleRes =
             { method =
                 "PUT"
             , headers =
-                [ Http.header "Content-Type" "application/json" ]
+                []
             , url =
                 Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
@@ -272,8 +271,11 @@ putTimeseries file toMsg handleRes =
                 Nothing
             }
 
-getTimeseries : QueryModel -> (Result Http.Error  (QueryR)  -> msg) -> Cmd msg
-getTimeseries body toMsg =
+getTimeseries : QueryModel 
+       -> (Result ErrorDetailed (QueryR)  -> msg) 
+       -> (Json.Decode.Decoder QueryR -> Http.Response String -> Result ErrorDetailed (QueryR)) 
+       -> Cmd msg
+getTimeseries body toMsg handleRes =
     let
         params =
             List.filterMap identity
@@ -282,46 +284,19 @@ getTimeseries body toMsg =
     in
         Http.request
             { method =
-                "GET"
+                "POST"
             , headers =
-                []
+               []
             , url =
                 Url.Builder.crossOrigin "http://localhost:8081"
                     [ "timeseries"
+                    , "query"
                     ]
-                    params
+                    []
             , body =
                 Http.jsonBody (jsonEncQueryModel body)
             , expect =
-                Http.expectJson toMsg jsonDecQueryR
-            , timeout =
-                Nothing
-            , tracker =
-                Nothing
-            }
-
-getAllTimeseries : (Result Http.Error  ((List TS))  -> msg) -> Cmd msg
-getAllTimeseries toMsg =
-    let
-        params =
-            List.filterMap identity
-            (List.concat
-                [])
-    in
-        Http.request
-            { method =
-                "GET"
-            , headers =
-                []
-            , url =
-                Url.Builder.crossOrigin "http://localhost:8081"
-                    [ "timeseries"
-                    ]
-                    params
-            , body =
-                Http.emptyBody
-            , expect =
-                Http.expectJson toMsg (Json.Decode.list (jsonDecTS))
+                Http.expectStringResponse toMsg <| handleRes jsonDecQueryR
             , timeout =
                 Nothing
             , tracker =

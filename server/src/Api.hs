@@ -16,13 +16,15 @@ import           Data.Acid                   as A (AcidState)
 import           Data.Acid.Advanced          as AA (query', update')
 import           Data.Aeson                  (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8  as C
+import           Network.HTTP.Types.Method   (methodDelete, methodGet,
+                                              methodPost, methodPut)
 import           Network.Wai                 (Application, Middleware)
-import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors,
+import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..),
+                                              CorsResourcePolicy, cors,
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
 import           Repository.Model            (DTS, QueryModel, QueryR (..), TS,
-                                              Tag, TimeseriesDB, Timestamp,
-                                              emptyQM)
+                                              Tag, TimeseriesDB, Timestamp)
 import           Repository.Utils            (illegalQM)
 import           Servant
 
@@ -32,10 +34,9 @@ type TSServer api = ServerT api AcidReaderT
 type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] ()
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
-   :<|> ReqBody '[JSON] QueryModel :> Get '[JSON] QueryR
-   :<|> Get '[JSON] [TS]
    :<|> ReqBody '[JSON] [DTS] :> Delete '[JSON] ()
    :<|> Delete '[JSON] ()
+   :<|> "query" :> ReqBody '[JSON] QueryModel :> Post '[JSON] QueryR
    :<|> "timestamps" :> QueryFlag "bounded" :> Get '[JSON] [Timestamp]
    :<|> "tags" :> Get '[JSON] [Tag]
 
@@ -62,9 +63,6 @@ deleteData dts = ask >>= flip update' (ClearTS dts)
                                   [] -> return ()
                                   errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
 
-getData :: AcidReaderT [TS]
-getData = queryData emptyQM >>= \(QR r) -> either return (const $ throwError err500) r
-
 queryData :: QueryModel
            -> AcidReaderT QueryR
 queryData qm  | fst $ illegalQM qm = throwError $ err400 { errBody = C.pack $ snd $ illegalQM qm }
@@ -82,10 +80,9 @@ tags = ask >>= flip query' AllTags
 tsHandlers :: TSServer TimeseriesApi
 tsHandlers = insertData
         :<|> updateData
-        :<|> queryData
-        :<|> getData
         :<|> deleteData
         :<|> deleteData []
+        :<|> queryData
         :<|> timestamps
         :<|> tags
 
@@ -97,7 +94,7 @@ corsPolicy = cors (const $ Just policy)
     where
         policy = simpleCorsResourcePolicy
           {
-              corsMethods = [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+              corsMethods = [methodGet, methodPost, methodPut, methodDelete],
               corsOrigins = Just (["http://localhost:8000"], False),
               corsRequestHeaders = [ "Content-Type" ]
           }

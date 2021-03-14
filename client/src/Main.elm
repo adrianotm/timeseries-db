@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser
 import File exposing (File)
 import File.Select as Select
-import Either exposing (Either(..), unpack)
+import Either exposing (Either(..))
 import Api exposing (..)
 import Http exposing (Error(..))
 import Date exposing (..)
@@ -16,6 +16,7 @@ import Html.Styled.Events exposing (..)
 import Styles exposing (..)
 import Json.Decode as D
 import Maybe exposing (..)
+import Css.Global exposing (selector, global)
 
 -- MAIN
 
@@ -31,16 +32,16 @@ main =
 -- MODEL
 
 type alias Model
-  = { tss : List TS
-    , serverMsg : String
+  = { queryR : Maybe QueryR
+    , serverMsg : Maybe String
     , queryM : QueryModel
     , gtEqChecked: Bool
     , ltEqChecked: Bool
     }
 
 initModel : Model
-initModel = { tss = []
-            , serverMsg = ""
+initModel = { queryR = Nothing
+            , serverMsg = Just ""
             , queryM = emptyQM
             , gtEqChecked = False
             , ltEqChecked = False
@@ -60,6 +61,9 @@ emptyQM =
   , limit = Nothing
   }
 
+maxLimit : number
+maxLimit = 15
+
 init : () -> (Model, Cmd Msg)
 init _ =
   (initModel, Cmd.none  )
@@ -72,9 +76,9 @@ type Msg
   | UpdateTS File
   | DeleteTS File
   | ClearAllTS
-  | ApiMsg String
-  | GetTS
-  | GotTS (List TS)
+  | ApiMsg Bool String
+  | QueryTS
+  | GotQR QueryR
   | ChangeQM QueryModel
   | ChangeGT String
   | ChangeLT String
@@ -82,6 +86,10 @@ type Msg
   | LEClick
   | ChangeTSEq String
   | ChangeTagEq String
+  | ChangeAggF String
+  | ChangeGroupBy String
+  | ChangeSort String
+  | ChangeLimit String
   | NoOp
 
 parseError : String -> Maybe String
@@ -94,12 +102,9 @@ errToString err =
       "Timeout exceeded."
     Api.NetworkError ->
       "Network error"
-    Api.BadStatus metadata body ->
+    Api.BadStatus _ body ->
        (
-         String.fromInt metadata.statusCode 
-         ++ " " 
-         ++ metadata.statusText 
-         ++ "\n\n"
+         "Error: \n\n" 
          ++ body
         )
     Api.BadUrl url ->
@@ -125,24 +130,45 @@ responseToError httpResponse =
         Http.GoodStatus_ _ _ ->
             Ok ()
 
+responseToErrorQ : D.Decoder QueryR -> Http.Response String -> Result ErrorDetailed (QueryR)
+responseToErrorQ decoder httpResponse =
+  case httpResponse of
+        Http.BadUrl_ url ->
+            Err (Api.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Api.Timeout
+
+        Http.NetworkError_ ->
+            Err Api.NetworkError
+
+        Http.BadStatus_ metadata body -> 
+            Err (Api.BadStatus metadata body)
+
+        Http.GoodStatus_ _ body ->
+            case D.decodeString decoder body of
+              Ok value -> 
+                Ok value
+              Err err ->
+                Err (Api.BadBody (D.errorToString err))
 
 apiMsg : Result ErrorDetailed (()) -> Msg
 apiMsg res = 
   case res of
-    Err e -> ApiMsg <| errToString e
-    Ok _ -> ApiMsg "Success."
+    Err e -> ApiMsg False <| errToString e
+    Ok _ -> ApiMsg True "Success."
 
 basicApiMsg : Result Http.Error (()) -> Msg
 basicApiMsg res = 
   case res of
-    Err e -> ApiMsg (Debug.toString e)
-    Ok _ -> ApiMsg "Success."
+    Err e -> ApiMsg False (Debug.toString e)
+    Ok _ -> ApiMsg True "Success."
 
-handleTS : Result Http.Error ((List TS)) -> Msg
+handleTS : Result ErrorDetailed (QueryR) -> Msg
 handleTS res = 
   case res of
-    Err e -> ApiMsg (Debug.toString e)
-    Ok tss -> GotTS tss
+    Err e -> ApiMsg False <| errToString e
+    Ok qr -> GotQR qr
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({queryM} as model) = 
@@ -150,19 +176,20 @@ update msg ({queryM} as model) =
     RequestFile fileToMsg ->
       (model, Select.file ["application/json"] fileToMsg)
     UploadTS file ->
-      (model, postTimeseries file apiMsg responseToError)
+      ({ model | serverMsg = Nothing }, postTimeseries file apiMsg responseToError)
     UpdateTS file ->
-      (model, putTimeseries file apiMsg responseToError)
+      ({ model | serverMsg = Nothing }, putTimeseries file apiMsg responseToError)
     DeleteTS file ->
       (model, deleteTimeseries file apiMsg responseToError)
     ClearAllTS -> 
-      ({ model | tss = [] }, deleteAllTimeseries basicApiMsg)
-    ApiMsg resMsg -> 
-      ({ model | serverMsg = resMsg }, Cmd.none)
-    GetTS -> 
-      (model, getAllTimeseries handleTS)
-    GotTS tss -> 
-      ({ model | tss = tss, serverMsg = "Success." }, Cmd.none)
+      ({ model | serverMsg = Nothing, queryR = Nothing }, deleteAllTimeseries basicApiMsg)
+    ApiMsg succeeded resMsg -> 
+      let newQR = if not succeeded then Nothing else model.queryR in
+      ({ model | queryR = newQR, serverMsg = Just resMsg }, Cmd.none)
+    QueryTS -> let _ = Debug.log "qm" queryM in
+      (model, getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ)
+    GotQR qr -> 
+      ({ model | queryR = Just qr, serverMsg = Just "Success." }, Cmd.none)
     ChangeQM qm ->
       ({ model | queryM = qm }, Cmd.none)
     ChangeGT gt -> 
@@ -171,7 +198,7 @@ update msg ({queryM} as model) =
                     else { queryM | gt = String.toInt gt }
       in ({ model | queryM = newQM }, Cmd.none)
     ChangeLT lt ->
-      let newQM = if model.gtEqChecked 
+      let newQM = if model.ltEqChecked
                     then { queryM | le = String.toInt lt }
                     else { queryM | lt = String.toInt lt }
       in ({ model | queryM = newQM }, Cmd.none)
@@ -189,6 +216,14 @@ update msg ({queryM} as model) =
       ({ model | queryM = { queryM | tsEq = String.toInt tsEq }}, Cmd.none)
     ChangeTagEq tagEq ->
       ({ model | queryM = { queryM | tagEq = if tagEq == "" then Nothing else Just tagEq }}, Cmd.none)
+    ChangeAggF aggF ->
+      ({ model | queryM = { queryM | aggFunc = stringToAgg aggF }}, Cmd.none)
+    ChangeGroupBy groupBy ->
+      ({ model | queryM = { queryM | groupBy = stringToGroupBy groupBy }}, Cmd.none)
+    ChangeSort sort ->
+      ({ model | queryM = { queryM | sort = stringToSort sort }}, Cmd.none)
+    ChangeLimit limit ->
+      ({ model | queryM = { queryM | limit = String.toInt limit }}, Cmd.none)
     NoOp -> 
       (model, Cmd.none)
 
@@ -196,35 +231,29 @@ update msg ({queryM} as model) =
 
 view : Model -> Html Msg
 view model = 
-  wrapper [] 
+  page [] 
   [
-    wrapped []
+    global [
+      selector "@keyframes spin"
+      [ Css.property "0% { transform" "rotate(0deg); } 100% { transform: rotate(360deg); }" ]  
+    ],  -- For loader
+    wrapper [style "gap" "1vw"]
     [
       actionWrapper []
         [ queryView model
-        , styledButton [ onClick GetTS ] [ text "Query Timeseries" ] 
-        , styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
-        , styledButton [ onClick (RequestFile UpdateTS) ] [text "Update Timeseries"]
-        , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
-        , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
+        , div [] 
+          [
+            styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
+          , styledButton [ onClick (RequestFile UpdateTS) ] [text "Update Timeseries"]
+          , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
+          , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
+          ]
         ]
-        , tableTS model.tss
+        , tableQR model.queryR
         , serverMsgView model.serverMsg 
       ]
   ]
 
-tableTS : (List TS) -> Html Msg
-tableTS tss =
-    styledTable
-        []
-        (
-          ( styledTHead []
-            [ styleT th [] [ text "Timestamp" ]
-            , styleT th [] [ text "Tag" ]
-            , styleT th [] [ text "Value" ]
-            ]
-           ) :: List.map toTableRow tss
-         )
 
 gtToTimstamp : QueryModel -> String
 gtToTimstamp queryM =
@@ -256,13 +285,26 @@ queryView ({queryM} as model) =
   , eqTag queryM
   , br [] []
   , text "Aggregation Function"
-  -- , aggFuncView queryM
-  -- , text "Group By"
-  -- , groupByView queryM
-  -- , text "Sort By"
-  -- , sortByView queryM
-  -- , text "Limit timeseries"
-  -- , limiTSView queryM
+  , aggFuncView queryM
+  , br [] []
+  , text "Group By"
+  , groupByView queryM
+  , br [] []
+  , text "Sort Timestamp"
+  , sortView queryM
+  , br [] []
+  , text "Limit timeseries"
+  , limitTSView queryM
+  , br [] []
+  , styledButton 
+    [ 
+      css 
+      [
+        marginBottom (px 20)
+      , padding2 (Css.em 0.6) (Css.em 1.2)
+      ]
+    , onClick QueryTS 
+    ] [ text "Query Timeseries" ] 
   ]
 
 parseGT : QueryModel -> String
@@ -309,7 +351,7 @@ toTimestamp ({queryM} as model) =
           , value (parseLT queryM)
           , onInput <| ChangeLT
           ] []
-        , label [style "margin-left" "5px"] 
+        , label [style "margin-left" "10px"] 
             [
               input
               [
@@ -342,32 +384,197 @@ eqTag queryM =
         ] []
     ]
 
--- aggFuncView : QueryModel -> Html Msg
--- aggFuncView queryM =
---   let 
---       options = 
---   select [ onInput handleSetAgg ]
-    
+aggToString : Maybe Agg -> String
+aggToString agg = 
+  case agg of
+    Just AvgAgg -> "Average"
+    Just SumAgg -> "Sum"
+    Just CountAgg -> "Count"
+    Just MinAgg -> "Min"
+    Just MaxAgg -> "Max"
+    Nothing -> "-- Select --"
 
-serverMsgView : String -> Html Msg
+stringToAgg : String -> Maybe Agg
+stringToAgg s =
+  case s of
+    "Average" -> Just AvgAgg
+    "Sum" -> Just SumAgg
+    "Count" -> Just CountAgg
+    "Min" -> Just MinAgg
+    "Max" -> Just MaxAgg
+    _ -> Nothing
+
+aggFuncView : QueryModel -> Html Msg
+aggFuncView queryM =
+  let 
+      options = 
+        [ aggToString Nothing
+        , aggToString <| Just AvgAgg
+        , aggToString <| Just SumAgg
+        , aggToString <| Just CountAgg
+        , aggToString <| Just MinAgg
+        , aggToString <| Just MaxAgg
+        ]
+      buildOptions v =
+        option [ value v, selected <| stringToAgg v == queryM.aggFunc ] [ text v ]
+      viewOptions = List.map buildOptions options
+  in
+  select 
+  [
+    style "margin-top" "5px"
+  , onInput ChangeAggF
+  ] viewOptions
+
+groupByToString : Maybe GroupBy -> String
+groupByToString groupBy = 
+  case groupBy of
+    Just GByTimestamp -> "Timestamp"
+    Just GByTag -> "Tag"
+    Nothing -> "-- Select --"
+
+stringToGroupBy : String -> Maybe GroupBy
+stringToGroupBy s =
+  case s of
+    "Timestamp" -> Just GByTimestamp
+    "Tag" -> Just GByTag
+    _ -> Nothing
+
+groupByView : QueryModel -> Html Msg
+groupByView queryM =
+  let 
+      options = 
+        [ groupByToString Nothing
+        , groupByToString <| Just GByTimestamp
+        , groupByToString <| Just GByTag
+        ]
+      buildOptions v =
+        option [ value v, selected <| stringToGroupBy v == queryM.groupBy ] [ text v ]
+      viewOptions = List.map buildOptions options
+  in
+  select 
+  [
+    style "margin-top" "5px"
+  , onInput ChangeGroupBy
+  ] viewOptions
+
+sortToString : Maybe Sort -> String
+sortToString groupBy = 
+  case groupBy of
+    Just Desc -> "Descending"
+    _ -> "Ascending"
+
+stringToSort : String -> Maybe Sort
+stringToSort s =
+  case s of
+    "Descending" -> Just Desc
+    _ -> Nothing
+
+sortView : QueryModel -> Html Msg
+sortView queryM =
+  let 
+      options = 
+        [ sortToString Nothing
+        , sortToString <| Just Desc
+        ]
+      buildOptions v =
+        option [ value v, selected <| stringToSort v == queryM.sort ] [ text v ]
+      viewOptions = List.map buildOptions options
+  in
+  select 
+  [
+    style "margin-top" "5px"
+  , onInput ChangeSort
+  ] viewOptions
+    
+limitTSView : QueryModel -> Html Msg
+limitTSView queryM =
+  div [ style "margin-top" "5px" ] 
+      [ input 
+          [ 
+            type_ "number"
+          , Html.Styled.Attributes.min "1"
+          , value (withDefault "" <| Maybe.map String.fromInt queryM.limit)
+          , onInput <| ChangeLimit
+          ] []
+      ]
+
+serverMsgView : Maybe String -> Html Msg
 serverMsgView s = 
   case s of
-    "" -> textWrapper [] []
-    error -> textWrapper [] 
+    Nothing -> loader []
+    Just "" -> textWrapper [] [] 
+    Just error -> textWrapper [] 
             ( h3 [] [ text  "Server message: " ]
               :: (List.intersperse (br [] []) <| 
                     List.map text <| 
                     String.lines <| error)
             )
 
-
 formatTimstamp : Int -> String
 formatTimstamp = fromTime << millisToPosix 
 
-toTableRow : TS -> Html Msg
-toTableRow ts = 
+tableQR : Maybe QueryR -> Html Msg
+tableQR qr = 
+  case qr of
+    Just (Left tss) -> tableTS tss
+    Just (Right (Left gAggR)) -> tableGroup gAggR
+    Just (Right (Right aggR)) -> tableAggR aggR
+    Nothing -> div [] []
+
+tableTS : (List TS) -> Html Msg
+tableTS tss =
+    styledTable
+        []
+        (
+          ( styledTHead []
+            [ styleT th [] [ text "Timestamp" ]
+            , styleT th [] [ text "Tag" ]
+            , styleT th [] [ text "Value" ]
+            ]
+           ) :: List.map toTSTableRow tss
+         )
+
+toTSTableRow : TS -> Html Msg
+toTSTableRow ts = 
   styledTR []
     [ styleT td [] [ text (formatTimstamp ts.timestamp)]
     , styleT td [] [ text ts.tag]
-    , styleT td [] [ text (Debug.toString ts.value)]
+    , styleT td [] [ text (String.fromFloat ts.value)]
     ]
+
+tableGroup : (List GroupAggR) -> Html Msg
+tableGroup groupAggR =
+    styledTable
+        []
+        (
+          ( styledTHead []
+            [ styleT th [] [ text "Group" ]
+            , styleT th [] [ text "Value" ]
+            ]
+           ) :: List.map toGTableRow groupAggR
+         )
+
+toGTableRow : GroupAggR -> Html Msg
+toGTableRow groupAggR = 
+  let 
+      formatGroup g = 
+        case g of
+          Left tag -> tag
+          Right timestamp -> formatTimstamp timestamp
+  in
+  styledTR []
+    [ styleT td [] [ text (formatGroup groupAggR.group)]
+    , styleT td [] [ text (String.fromFloat groupAggR.result)]
+    ]
+
+tableAggR : AggR -> Html Msg
+tableAggR aggR =
+    styledTable
+        []
+        (
+          [ styledTHead []
+              [ styleT th [] [ text "Result" ] ]
+          , styledTR []
+              [ styleT td [] [ text (String.fromFloat aggR.result)]]
+          ] 
+         )

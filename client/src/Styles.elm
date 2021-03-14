@@ -1,13 +1,12 @@
 module Styles exposing (..)
 
 import Css exposing (..)
-import Css.Transitions exposing (transition)
 import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (..)
 import Html.Styled.Events exposing (..)
 
-wrapper : List (Attribute msg) -> List (Html msg) -> Html msg
-wrapper = 
+page : List (Attribute msg) -> List (Html msg) -> Html msg
+page = 
   styled Html.Styled.div 
   [
     backgroundColor (hex "FFFFFF")
@@ -15,17 +14,15 @@ wrapper =
   , Css.width (vw 100)
   ]
 
-wrapped : List (Attribute msg) -> List (Html msg) -> Html msg
-wrapped = 
+wrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+wrapper = 
   styled Html.Styled.div 
   [
     displayFlex
   , paddingTop (vh 5)
   , margin auto
-  , justifyContent spaceBetween
-  , Css.width (vw 90)
+  , Css.width (vw 95)
   , Css.height (vh 90)
-  -- , backgroundColor (hex "EBDD86")
   ]
 
 actionWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -34,7 +31,11 @@ actionWrapper =
   [
     displayFlex
   , flex3 (int 0) (int 0) (pct 25)
+  , padding (px 20)
+  , border3 (px 1) solid (hex "668C8F")
   , flexDirection column
+  , justifyContent spaceBetween
+  , backgroundColor (hex "E7EEEE")
   ]
 
 
@@ -53,7 +54,7 @@ styleT : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribut
 styleT elem = 
   styled elem
   [
-    border3 (px 1) solid (hex "854D27")
+    border3 (px 1) solid (hex "111818")
   , padding (rem 0.5)
   , textAlign center
   ]
@@ -62,16 +63,16 @@ styledTHead : List (Attribute msg) -> List (Html msg) -> Html msg
 styledTHead = 
   styled thead
   [
-    backgroundColor (hex "CD7F3A")
+    backgroundColor (hex "668C8F")
   ]
 
 styledTR : List (Attribute msg) -> List (Html msg) -> Html msg
 styledTR = 
   styled tr
   [
-    backgroundColor (hex "F6D379")
+    backgroundColor (hex "ABC4C4")
   , nthOfType "odd" [
-      backgroundColor (hex "FCF2D9")
+      backgroundColor (hex "E7EEEE")
      ]
   ]
 
@@ -102,7 +103,6 @@ textWrapper =
    styled div
    [
       flex3 (int 0) (int 0) (pct 20)
-   ,  marginLeft (Css.em 1)
    ]
 
 queryWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
@@ -115,9 +115,20 @@ queryWrapper =
    , marginBottom (Css.em 1)
    ]
 
+loader : List (Html msg) -> Html msg
+loader =
+  styled div 
+  [ border3 (px 10) solid (hex "f3f3f3")
+  , borderTop3 (px 10) solid (hex "668C8F")
+  , borderRadius (pct 50)
+  , Css.width (px 30)
+  , Css.height (px 30)
+  ] 
+  [ style "animation" "spin 2s linear infinite" ]
+
 theme : { secondary : Color, primary : Color }
 theme =
-    { primary = hex "E7E393"
+    { primary = hex "668C8F"
     , secondary = rgb 250 240 230
     }
 

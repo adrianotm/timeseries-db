@@ -51,6 +51,7 @@ dependencies:
   - unordered-containers
   - servant-elm
   - elm-bridge
+  - http-types
 
 library:
   source-dirs: server/src
