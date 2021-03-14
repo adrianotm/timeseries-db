@@ -9,6 +9,7 @@ import Dict exposing (Dict)
 import File exposing (File)
 import Http
 import Url.Builder
+import Bytes exposing (Bytes (..))
 
 type alias Timestamp = Int
 type alias Val = Float
@@ -189,32 +190,6 @@ jsonDecAggR =
    Json.Decode.succeed (\p_res -> {result = p_res})
    |> required "result" jsonDecVal
 
-jsonEncAggR : AggR -> Value
-jsonEncAggR val = 
-   Json.Encode.object
-   [ ("result", jsonEncVal val.result)
-   ]
-
-
-type alias DTS  =
-   { timestamp: Timestamp
-   , tag: Tag
-   }
-
-jsonDecDTS : Json.Decode.Decoder ( DTS )
-jsonDecDTS =
-   Json.Decode.succeed (\ptimestamp ptag -> {timestamp = ptimestamp, tag = ptag})
-   |> required "timestamp" (jsonDecTimestamp)
-   |> required "tag" (jsonDecTag)
-
-jsonEncDTS : DTS -> Value
-jsonEncDTS  val =
-   Json.Encode.object
-   [ ("timestamp", jsonEncTimestamp val.timestamp)
-   , ("tag", jsonEncTag val.tag)
-   ]
-
-
 postTimeseries : File -> (Result ErrorDetailed (())  -> msg) -> (Http.Response String -> Result ErrorDetailed (())) -> Cmd msg
 postTimeseries body toMsg handleRes =
     let
@@ -303,6 +278,38 @@ getTimeseries body toMsg handleRes =
                 Nothing
             }
 
+getTimeseriesBytes : QueryModel 
+       -> (Result ErrorDetailed Bytes  -> msg) 
+       -> (Http.Response Bytes.Bytes -> Result ErrorDetailed Bytes) 
+       -> Cmd msg
+getTimeseriesBytes body toMsg handleRes =
+    let
+        params =
+            List.filterMap identity
+            (List.concat
+                [])
+    in
+        Http.request
+            { method =
+                "POST"
+            , headers =
+               []
+            , url =
+                Url.Builder.crossOrigin "http://localhost:8081"
+                    [ "timeseries"
+                    , "query"
+                    ]
+                    []
+            , body =
+                Http.jsonBody (jsonEncQueryModel body)
+            , expect =
+                Http.expectBytesResponse toMsg handleRes 
+            , timeout =
+                Nothing
+            , tracker =
+                Nothing
+            }
+
 deleteTimeseries : File -> (Result ErrorDetailed (())  -> msg) -> (Http.Response String -> Result ErrorDetailed (())) -> Cmd msg
 deleteTimeseries file toMsg handleRes =
     let
@@ -356,66 +363,6 @@ deleteAllTimeseries toMsg =
                      (\x -> case x of
                      Err e -> toMsg (Err e)
                      Ok _ -> toMsg (Ok ()))
-            , timeout =
-                Nothing
-            , tracker =
-                Nothing
-            }
-
-getTimeseriesTimestamps : Bool -> (Result Http.Error  ((List Int))  -> msg) -> Cmd msg
-getTimeseriesTimestamps query_bounded toMsg =
-    let
-        params =
-            List.filterMap identity
-            ([ if query_bounded then
-                  Just (Url.Builder.string "bounded" "")
-               else
-                  Nothing ]
-            )
-    in
-        Http.request
-            { method =
-                "GET"
-            , headers =
-                []
-            , url =
-                Url.Builder.crossOrigin "http://localhost:8081"
-                    [ "timeseries"
-                    , "timestamps"
-                    ]
-                    params
-            , body =
-                Http.emptyBody
-            , expect =
-                Http.expectJson toMsg (Json.Decode.list (Json.Decode.int))
-            , timeout =
-                Nothing
-            , tracker =
-                Nothing
-            }
-
-getTimeseriesTags : (Result Http.Error  ((List Tag))  -> msg) -> Cmd msg
-getTimeseriesTags toMsg =
-    let
-        params =
-            List.filterMap identity
-            ([])
-    in
-        Http.request
-            { method =
-                "GET"
-            , headers =
-                []
-            , url =
-                Url.Builder.crossOrigin "http://localhost:8081"
-                    [ "timeseries"
-                    , "tags"
-                    ]
-                    params
-            , body =
-                Http.emptyBody
-            , expect =
-                Http.expectJson toMsg (Json.Decode.list (jsonDecTag))
             , timeout =
                 Nothing
             , tracker =

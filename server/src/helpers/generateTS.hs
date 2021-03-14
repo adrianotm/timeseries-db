@@ -18,7 +18,7 @@ getTs i
   | otherwise  = 4
 
 generateTS :: [TS]
-generateTS = [TS (0 + i) "adrian" 66 | i <- [0..30]]
+generateTS = [TS (0 + i) "adrian" 66 | i <- [0..1000000]]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)

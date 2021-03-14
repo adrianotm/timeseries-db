@@ -17,6 +17,9 @@ import Styles exposing (..)
 import Json.Decode as D
 import Maybe exposing (..)
 import Css.Global exposing (selector, global)
+import Bytes exposing (Bytes(..), Endianness(..))
+import Bytes.Decode as BD
+import File.Download as Download
 
 -- MAIN
 
@@ -78,6 +81,8 @@ type Msg
   | ClearAllTS
   | ApiMsg Bool String
   | QueryTS
+  | ExportQ
+  | ExportTS Bytes
   | GotQR QueryR
   | ChangeQM QueryModel
   | ChangeGT String
@@ -130,6 +135,28 @@ responseToError httpResponse =
         Http.GoodStatus_ _ _ ->
             Ok ()
 
+sizedString : BD.Decoder String
+sizedString = BD.andThen BD.string <| BD.unsignedInt32 BE 
+
+responseToErrorBytes : Http.Response Bytes -> Result ErrorDetailed Bytes
+responseToErrorBytes httpResponse =
+  case httpResponse of
+        Http.BadUrl_ url ->
+            Err (Api.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Api.Timeout
+
+        Http.NetworkError_ ->
+            Err Api.NetworkError
+
+        Http.BadStatus_ metadata body ->
+          let s = BD.decode (sizedString) body in
+            Err (Api.BadStatus metadata (withDefault "" s))
+
+        Http.GoodStatus_ _ body ->
+            Ok body
+
 responseToErrorQ : D.Decoder QueryR -> Http.Response String -> Result ErrorDetailed (QueryR)
 responseToErrorQ decoder httpResponse =
   case httpResponse of
@@ -152,23 +179,26 @@ responseToErrorQ decoder httpResponse =
               Err err ->
                 Err (Api.BadBody (D.errorToString err))
 
-apiMsg : Result ErrorDetailed (()) -> Msg
-apiMsg res = 
-  case res of
-    Err e -> ApiMsg False <| errToString e
-    Ok _ -> ApiMsg True "Success."
-
 basicApiMsg : Result Http.Error (()) -> Msg
 basicApiMsg res = 
   case res of
     Err e -> ApiMsg False (Debug.toString e)
     Ok _ -> ApiMsg True "Success."
 
-handleTS : Result ErrorDetailed (QueryR) -> Msg
-handleTS res = 
+apiRes : (a -> Msg) -> (Result ErrorDetailed a) -> Msg
+apiRes toMsg res =
   case res of
     Err e -> ApiMsg False <| errToString e
-    Ok qr -> GotQR qr
+    Ok r -> toMsg r
+
+apiMsg : Result ErrorDetailed (()) -> Msg
+apiMsg = apiRes (always <| ApiMsg True "Success.") 
+
+handleTS : Result ErrorDetailed (QueryR) -> Msg
+handleTS = apiRes GotQR 
+
+handleTSBytes : Result ErrorDetailed Bytes -> Msg
+handleTSBytes = apiRes (ExportTS)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({queryM} as model) = 
@@ -186,8 +216,14 @@ update msg ({queryM} as model) =
     ApiMsg succeeded resMsg -> 
       let newQR = if not succeeded then Nothing else model.queryR in
       ({ model | queryR = newQR, serverMsg = Just resMsg }, Cmd.none)
-    QueryTS -> let _ = Debug.log "qm" queryM in
-      (model, getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ)
+    QueryTS -> 
+      ({ model | serverMsg = Nothing }
+      , getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ)
+    ExportQ ->
+      ({ model | serverMsg = Nothing }, getTimeseriesBytes queryM handleTSBytes responseToErrorBytes)
+    ExportTS ts ->
+      ({ model | serverMsg = Just "Success"}
+      , Download.bytes "query.json" "application/json" ts)
     GotQR qr -> 
       ({ model | queryR = Just qr, serverMsg = Just "Success." }, Cmd.none)
     ChangeQM qm ->
@@ -300,11 +336,18 @@ queryView ({queryM} as model) =
     [ 
       css 
       [
-        marginBottom (px 20)
-      , padding2 (Css.em 0.6) (Css.em 1.2)
+       padding2 (Css.em 0.6) (Css.em 1.2)
       ]
     , onClick QueryTS 
     ] [ text "Query Timeseries" ] 
+   , styledButton 
+      [ 
+        css 
+        [
+         padding2 (Css.em 0.6) (Css.em 1.2)
+        ]
+      , onClick ExportQ 
+      ] [ text "Query and Export Timeseries" ]
   ]
 
 parseGT : QueryModel -> String
