@@ -106,17 +106,14 @@ jsonEncQueryModel  val =
 
 
 
-type alias Tag  = (Either String Int)
+type alias Tag  = String
 
 jsonDecTag : Json.Decode.Decoder ( Tag )
-jsonDecTag = Json.Decode.oneOf [ Json.Decode.map Left string, Json.Decode.map Right int]
+jsonDecTag = Json.Decode.string
     
 
 jsonEncTag : Tag -> Value
-jsonEncTag tag = 
-   case tag of
-      Left val -> Json.Encode.string val
-      Right val -> Json.Encode.int val
+jsonEncTag = Json.Encode.string
 
 type Sort  =
     Asc 
@@ -133,8 +130,6 @@ jsonEncSort  val =
         Asc -> Json.Encode.string "Asc"
         Desc -> Json.Encode.string "Desc"
 
-
-
 type GroupBy  =
     GByTimestamp 
     | GByTag 
@@ -149,7 +144,6 @@ jsonEncGroupBy  val =
     case val of
         GByTimestamp -> Json.Encode.string "GByTimestamp"
         GByTag -> Json.Encode.string "GByTag"
-
 
 
 type Agg  =

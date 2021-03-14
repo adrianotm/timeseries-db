@@ -31,8 +31,22 @@ main =
 -- MODEL
 
 type alias Model
-  = { tss : List TS, serverMsg : String, queryM : QueryModel }
+  = { tss : List TS
+    , serverMsg : String
+    , queryM : QueryModel
+    , gtEqChecked: Bool
+    , ltEqChecked: Bool
+    }
 
+initModel : Model
+initModel = { tss = []
+            , serverMsg = ""
+            , queryM = emptyQM
+            , gtEqChecked = False
+            , ltEqChecked = False
+            }
+
+emptyQM : QueryModel
 emptyQM = 
   { gt = Nothing 
   , lt = Nothing
@@ -48,8 +62,7 @@ emptyQM =
 
 init : () -> (Model, Cmd Msg)
 init _ =
-  ( { tss = [], serverMsg = "", queryM = emptyQM }
-  , Cmd.none  )
+  (initModel, Cmd.none  )
 
 -- UPDATE
 
@@ -58,11 +71,17 @@ type Msg
   | UploadTS File
   | UpdateTS File
   | DeleteTS File
-  | ChangeQM QueryModel
   | ClearAllTS
   | ApiMsg String
   | GetTS
   | GotTS (List TS)
+  | ChangeQM QueryModel
+  | ChangeGT String
+  | ChangeLT String
+  | GEClick
+  | LEClick
+  | ChangeTSEq String
+  | ChangeTagEq String
   | NoOp
 
 parseError : String -> Maybe String
@@ -126,7 +145,7 @@ handleTS res =
     Ok tss -> GotTS tss
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg model = 
+update msg ({queryM} as model) = 
   case msg of
     RequestFile fileToMsg ->
       (model, Select.file ["application/json"] fileToMsg)
@@ -146,6 +165,30 @@ update msg model =
       ({ model | tss = tss, serverMsg = "Success." }, Cmd.none)
     ChangeQM qm ->
       ({ model | queryM = qm }, Cmd.none)
+    ChangeGT gt -> 
+      let newQM = if model.gtEqChecked 
+                    then { queryM | ge = String.toInt gt }
+                    else { queryM | gt = String.toInt gt }
+      in ({ model | queryM = newQM }, Cmd.none)
+    ChangeLT lt ->
+      let newQM = if model.gtEqChecked 
+                    then { queryM | le = String.toInt lt }
+                    else { queryM | lt = String.toInt lt }
+      in ({ model | queryM = newQM }, Cmd.none)
+    GEClick ->
+      let newQM = if model.gtEqChecked 
+                    then { queryM | gt = queryM.ge, ge = Nothing }
+                    else { queryM | ge = queryM.gt, gt = Nothing }
+      in ({ model | queryM = newQM, gtEqChecked = not model.gtEqChecked }, Cmd.none)
+    LEClick ->
+      let newQM = if model.ltEqChecked 
+                    then { queryM | lt = queryM.le, le = Nothing }
+                    else { queryM | le = queryM.lt, lt = Nothing }
+      in ({ model | queryM = newQM, ltEqChecked = not model.ltEqChecked }, Cmd.none)
+    ChangeTSEq tsEq ->
+      ({ model | queryM = { queryM | tsEq = String.toInt tsEq }}, Cmd.none)
+    ChangeTagEq tagEq ->
+      ({ model | queryM = { queryM | tagEq = if tagEq == "" then Nothing else Just tagEq }}, Cmd.none)
     NoOp -> 
       (model, Cmd.none)
 
@@ -165,58 +208,146 @@ view model =
         , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
         , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
         ]
-        , styledTable
-          []
-          (
-            ( styledTHead []
-              [ styleT th [] [ text "Timestamp" ]
-              , styleT th [] [ text "Tag" ]
-              , styleT th [] [ text "Value" ]
-              ]
-             ) :: List.map toTableRow model.tss
-           )
-         , serverMsgView model.serverMsg 
+        , tableTS model.tss
+        , serverMsgView model.serverMsg 
       ]
   ]
 
-parseQ : Maybe x -> String
-parseQ = withDefault "" << Maybe.map Debug.toString
+tableTS : (List TS) -> Html Msg
+tableTS tss =
+    styledTable
+        []
+        (
+          ( styledTHead []
+            [ styleT th [] [ text "Timestamp" ]
+            , styleT th [] [ text "Tag" ]
+            , styleT th [] [ text "Value" ]
+            ]
+           ) :: List.map toTableRow tss
+         )
 
-changeGT : QueryModel -> String -> Msg
-changeGT queryM = 
-  withDefault (ChangeQM { queryM | gt = Nothing }) << 
-  Maybe.map (\ngt -> ChangeQM { queryM | gt = Just ngt}) << 
-  String.toInt 
+gtToTimstamp : QueryModel -> String
+gtToTimstamp queryM =
+  case queryM.gt of
+    Nothing -> withDefault "" (Maybe.map formatTimstamp queryM.ge)
+    (Just gt) -> formatTimstamp gt
 
-changeLT : QueryModel -> String -> Msg
-changeLT queryM = 
-  withDefault (ChangeQM { queryM | lt = Nothing }) << 
-  Maybe.map (\nlt -> ChangeQM { queryM | lt = Just nlt}) << 
-  String.toInt 
+ltToTimestamp : QueryModel -> String
+ltToTimestamp queryM =
+  case queryM.lt of
+    Nothing -> withDefault "" (Maybe.map formatTimstamp queryM.le)
+    (Just lt) -> formatTimstamp lt
 
 queryView : Model -> Html Msg
-queryView model = 
+queryView ({queryM} as model) = 
   queryWrapper [] 
-  [ text ("From POSIX time (in millisec) - " 
-      ++ withDefault "" (Maybe.map formatTimstamp model.queryM.gt))
-  , input 
-    [ 
-      type_ "number"
-    , Html.Styled.Attributes.min "0"
-    , value (parseQ model.queryM.gt)
-    , onInput <| changeGT model.queryM 
-    ] []
+  [ h3 [] [text "Query"]
+  , text ("From POSIX time (in millisec) - "  ++ gtToTimstamp queryM)
+  , fromTimestamp model
   , br [] []
-  , text ("To POSIX time (in millisec) - "
-      ++ withDefault "" (Maybe.map formatTimstamp model.queryM.lt))
-  , input 
-    [ 
-      type_ "number"
-    , Html.Styled.Attributes.min "0"
-    , value (parseQ model.queryM.lt)
-    , onInput <| changeLT model.queryM 
-    ] []
+  , text ("To POSIX time (in millisec) - " ++ ltToTimestamp queryM)
+  , toTimestamp model
+  , br [] []
+  , text ("Equal POSIX time (in millisec) - "
+      ++ withDefault "" (Maybe.map formatTimstamp queryM.tsEq))
+  , eqTimestamp queryM
+  , br [] []
+  , text "Tag Equal"
+  , eqTag queryM
+  , br [] []
+  , text "Aggregation Function"
+  -- , aggFuncView queryM
+  -- , text "Group By"
+  -- , groupByView queryM
+  -- , text "Sort By"
+  -- , sortByView queryM
+  -- , text "Limit timeseries"
+  -- , limiTSView queryM
   ]
+
+parseGT : QueryModel -> String
+parseGT qm =
+  case qm.gt of
+    Nothing -> withDefault "" <| Maybe.map (String.fromInt) qm.ge
+    Just gt -> String.fromInt gt
+
+fromTimestamp : Model -> Html Msg
+fromTimestamp ({queryM} as model) = 
+  div [ style "margin-top" "5px" ] 
+      [ input 
+          [ 
+            type_ "number"
+          , Html.Styled.Attributes.min "0"
+          , value (parseGT queryM)
+          , onInput <| ChangeGT
+          ] []
+        , label [style "margin-left" "10px"] 
+            [
+              input
+              [
+                type_ "checkbox"
+              , Html.Styled.Attributes.checked <| model.gtEqChecked
+              , onClick <| GEClick
+              ] []
+            , text "Equal"
+            ]
+      ]
+
+parseLT : QueryModel -> String
+parseLT qm =
+  case qm.lt of
+    Nothing -> withDefault "" <| Maybe.map (String.fromInt) qm.le
+    Just lt -> String.fromInt lt
+
+toTimestamp : Model -> Html Msg
+toTimestamp ({queryM} as model) = 
+  div [ style "margin-top" "5px" ] 
+      [ input 
+          [ 
+            type_ "number"
+          , Html.Styled.Attributes.min "0"
+          , value (parseLT queryM)
+          , onInput <| ChangeLT
+          ] []
+        , label [style "margin-left" "5px"] 
+            [
+              input
+              [
+                type_ "checkbox"
+              , Html.Styled.Attributes.checked <| model.ltEqChecked 
+              , onClick <| LEClick
+              ] []
+            , text "Equal"
+            ]
+      ]
+
+eqTimestamp : QueryModel -> Html Msg
+eqTimestamp queryM =
+  div [ style "margin-top" "5px" ] 
+      [ input 
+          [ 
+            type_ "number"
+          , Html.Styled.Attributes.min "0"
+          , value (withDefault "" <| Maybe.map String.fromInt queryM.tsEq)
+          , onInput <| ChangeTSEq
+          ] []
+      ]
+
+eqTag : QueryModel -> Html Msg
+eqTag queryM = 
+  div [ style "margin-top" "5px" ] 
+    [ input 
+        [ value <| withDefault "" queryM.tagEq
+        , onInput <| ChangeTagEq
+        ] []
+    ]
+
+-- aggFuncView : QueryModel -> Html Msg
+-- aggFuncView queryM =
+--   let 
+--       options = 
+--   select [ onInput handleSetAgg ]
+    
 
 serverMsgView : String -> Html Msg
 serverMsgView s = 
@@ -237,6 +368,6 @@ toTableRow : TS -> Html Msg
 toTableRow ts = 
   styledTR []
     [ styleT td [] [ text (formatTimstamp ts.timestamp)]
-    , styleT td [] [ text (unpack identity Debug.toString ts.tag)]
+    , styleT td [] [ text ts.tag]
     , styleT td [] [ text (Debug.toString ts.value)]
     ]

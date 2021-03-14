@@ -22,7 +22,7 @@ wrapped =
     displayFlex
   , paddingTop (vh 5)
   , margin auto
-  , justifyContent center
+  , justifyContent spaceBetween
   , Css.width (vw 90)
   , Css.height (vh 90)
   -- , backgroundColor (hex "EBDD86")
@@ -33,9 +33,8 @@ actionWrapper =
   styled Html.Styled.div 
   [
     displayFlex
-  , flex3 (int 0) (int 0) (pct 30)
+  , flex3 (int 0) (int 0) (pct 25)
   , flexDirection column
-  , marginRight (px 10)
   ]
 
 
@@ -44,7 +43,7 @@ styledTable =
   styled Html.Styled.table
   [
     borderCollapse collapse
-  , flex3 (int 0) (int 0) (pct 40)
+  , flex3 (int 0) (int 0) (pct 50)
   , tableLayout fixed
   , border3 (px 1) solid (rgb 255 0 0)
   , Css.width (pct 50)
@@ -92,7 +91,7 @@ styledButton =
   , color (hex "FFFFFF")
   , outline none
   , fontFamily sansSerif
-  , Css.width (pct 50)
+  , Css.width (pct 60)
   , hover [
        backgroundColor (hex "7CA0A2")
      ]

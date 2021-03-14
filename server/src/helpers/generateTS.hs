@@ -5,10 +5,10 @@ import           Repository.Model
 
 getTag :: Int -> Tag
 getTag i
-  | even i = Tag $ Left "drop"
-  | i `mod` 3 == 0  = Tag $ Left "adrian"
-  | i `mod` 5 == 0  = Tag $ Left "cholak"
-  | otherwise  = Tag $ Left "test"
+  | even i = "drop"
+  | i `mod` 3 == 0  = "adrian"
+  | i `mod` 5 == 0  = "cholak"
+  | otherwise  = "test"
 
 getTs :: Int -> Int
 getTs i
@@ -18,7 +18,7 @@ getTs i
   | otherwise  = 4
 
 generateTS :: [TS]
-generateTS = [TS (0 + i) (Tag $ Left "adrian") 66 | i <- [0..10]]
+generateTS = [TS (0 + i) "adrian" 66 | i <- [0..10]]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS3.json" (encodeToLazyText generateTS)

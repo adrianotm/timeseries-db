@@ -52,21 +52,22 @@ type Timestamp = Int
 type Val = Double
 type Ix = Int
 type Limit = Int
+type Tag = String
 
-newtype Tag = Tag (Either String Int)
-    deriving (Eq, Ord, Hashable, Generic)
+-- newtype Tag = Tag (Either String Int)
+--     deriving (Eq, Ord, Hashable, Generic)
 
-instance Show Tag where
-    show (Tag t) = either show show t
+-- instance Show Tag where
+--     show (Tag t) = either show show t
 
-instance FromJSON Tag where
-    parseJSON (String s) = return $ Tag (Left $ unpack s)
-    parseJSON (Number n) = maybe (fail "Invalid number.") (return . Tag . Right) (toBoundedInteger n)
-    parseJSON _ = fail "Tag type not allowed. Expected Int or String."
+-- instance FromJSON Tag where
+--     parseJSON (String s) = return $ Tag (Left $ unpack s)
+--     parseJSON (Number n) = maybe (fail "Invalid number.") (return . Tag . Right) (toBoundedInteger n)
+--     parseJSON _ = fail "Tag type not allowed. Expected Int or String."
 
-instance ToJSON Tag where
-    toJSON (Tag t) = either toJSON toJSON t
-    toEncoding (Tag t) = either toEncoding toEncoding t
+-- instance ToJSON Tag where
+--     toJSON (Tag t) = either toJSON toJSON t
+--     toEncoding (Tag t) = either toEncoding toEncoding t
 
 data GroupBy = GByTimestamp | GByTag
     deriving (Show)
@@ -187,7 +188,6 @@ $(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''QueryR)
 deriveElmDef ELM.defaultOptions ''Agg
 deriveElmDef ELM.defaultOptions ''GroupBy
 deriveElmDef ELM.defaultOptions ''Sort
-deriveElmDef ELM.defaultOptions ''Tag
 deriveElmDef ELM.defaultOptions ''AggR
 deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''GroupAggR
 deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''TS
@@ -196,7 +196,6 @@ deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''QueryModel
 deriveElmDef ELM.defaultOptions ''QueryR
 
 deriveSafeCopy 0 'base ''AggR
-deriveSafeCopy 0 'base ''Tag
 deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
 deriveSafeCopy 0 'base ''DTS
