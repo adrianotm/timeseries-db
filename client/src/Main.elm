@@ -200,27 +200,30 @@ handleTS = apiRes GotQR
 handleTSBytes : Result ErrorDetailed Bytes -> Msg
 handleTSBytes = apiRes (ExportTS)
 
+clearScreen : Model -> Model
+clearScreen model = {model | serverMsg = Nothing, queryR = Nothing}
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({queryM} as model) = 
   case msg of
     RequestFile fileToMsg ->
       (model, Select.file ["application/json"] fileToMsg)
     UploadTS file ->
-      ({ model | serverMsg = Nothing }, postTimeseries file apiMsg responseToError)
+      (clearScreen model, postTimeseries file apiMsg responseToError)
     UpdateTS file ->
-      ({ model | serverMsg = Nothing }, putTimeseries file apiMsg responseToError)
+      (clearScreen model, putTimeseries file apiMsg responseToError)
     DeleteTS file ->
-      (model, deleteTimeseries file apiMsg responseToError)
+      (clearScreen model, deleteTimeseries file apiMsg responseToError)
     ClearAllTS -> 
-      ({ model | serverMsg = Nothing, queryR = Nothing }, deleteAllTimeseries basicApiMsg)
+      (clearScreen model, deleteAllTimeseries basicApiMsg)
     ApiMsg succeeded resMsg -> 
       let newQR = if not succeeded then Nothing else model.queryR in
       ({ model | queryR = newQR, serverMsg = Just resMsg }, Cmd.none)
     QueryTS -> 
-      ({ model | serverMsg = Nothing }
+      (clearScreen model
       , getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ)
     ExportQ ->
-      ({ model | serverMsg = Nothing }, getTimeseriesBytes queryM handleTSBytes responseToErrorBytes)
+      (clearScreen model, getTimeseriesBytes queryM handleTSBytes responseToErrorBytes)
     ExportTS ts ->
       ({ model | serverMsg = Just "Success"}
       , Download.bytes "query.json" "application/json" ts)
