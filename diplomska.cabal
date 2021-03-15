@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9ead533e4690d5fd6287390ae3f79f399f87e5411dab05ced48d8ab9b02b1935
+-- hash: f80cbbb52f42e46261b1bb5628a416bdda186654201dc13d8f6c7b6c366fbb74
 
 name:           diplomska
 version:        0.1.0.0
@@ -42,7 +42,7 @@ library
   other-modules:
       Paths_diplomska
   hs-source-dirs:
-      src
+      server/src
   build-depends:
       acid-state
     , aeson
@@ -56,14 +56,17 @@ library
     , containers
     , directory
     , dlist
+    , elm-bridge
     , hashable
     , http-media
+    , http-types
     , lens
     , lucid
     , mtl
     , safecopy
     , scientific
     , servant
+    , servant-elm
     , servant-server
     , string-conversions
     , text
@@ -72,15 +75,16 @@ library
     , unordered-containers
     , vector
     , wai
+    , wai-cors
     , warp
   default-language: Haskell2010
 
-executable diplomska-exe
+executable server
   main-is: Main.hs
   other-modules:
       Paths_diplomska
   hs-source-dirs:
-      app
+      server
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       acid-state
@@ -96,14 +100,17 @@ executable diplomska-exe
     , diplomska
     , directory
     , dlist
+    , elm-bridge
     , hashable
     , http-media
+    , http-types
     , lens
     , lucid
     , mtl
     , safecopy
     , scientific
     , servant
+    , servant-elm
     , servant-server
     , string-conversions
     , text
@@ -112,49 +119,6 @@ executable diplomska-exe
     , unordered-containers
     , vector
     , wai
-    , warp
-  default-language: Haskell2010
-
-test-suite diplomska-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_diplomska
-  hs-source-dirs:
-      test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      acid-state
-    , aeson
-    , array
-    , attoparsec
-    , base
-    , base-compat-batteries
-    , blaze-html
-    , blaze-markup
-    , bytestring
-    , containers
-    , diplomska
-    , directory
-    , dlist
-    , hashable
-    , hspec
-    , hspec-wai
-    , hspec-wai-json
-    , http-media
-    , lens
-    , lucid
-    , mtl
-    , safecopy
-    , scientific
-    , servant
-    , servant-server
-    , string-conversions
-    , text
-    , time
-    , transformers
-    , unordered-containers
-    , vector
-    , wai
+    , wai-cors
     , warp
   default-language: Haskell2010

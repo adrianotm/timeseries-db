@@ -20,12 +20,12 @@ module DataS.IntMap
    , (IM.!)
    ) where
 
-import           Control.Monad.State
-import           Data.Foldable
+import           Data.Foldable        (Foldable (foldMap, foldMap'))
 import qualified Data.HashMap.Strict  as HM
-import           Data.IntMap.Internal
+import           Data.IntMap.Internal (IntMap (Bin, Nil, Tip), Key, mask,
+                                       nomatch, zero)
 import qualified Data.IntMap.Strict   as IM
-import           Repository.Model
+import           Repository.Model     (Agg, Sort (Desc))
 
 --- Bool - return the equal key
 getGT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a

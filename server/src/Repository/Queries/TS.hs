@@ -2,17 +2,20 @@
 module Repository.Queries.TS where
 
 import           Control.Monad.Reader       (Reader, ask)
-import           Control.Monad.Trans.Except
-import           Data.Foldable
-import           Data.Functor
+import           Control.Monad.Trans.Except (throwE)
+import           Data.Foldable              (Foldable (foldMap'))
+import           Data.Functor               ((<&>))
 import qualified Data.Map.Strict            as M
 import qualified Data.Vector                as V
 import qualified DataS.DList                as DL
 import qualified DataS.IntMap               as IM
 
-import           Aggregates
-import           Repository.Model
-import           Repository.Queries.Shared
+import           Aggregates                 (toCollect)
+import           Repository.Model           (GroupBy (..), Ix, QueryModel (..),
+                                             Tag, TimeseriesDB (..), Timestamp)
+import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
+                                             noDataErr, qmToF, toCollAggR,
+                                             toTSAggR, toTagAggR)
 
 queryTS' :: (Monoid v) => (v -> a) -> (Ix -> v) -> Maybe (Timestamp, DL.DList Ix) -> ExceptQ (AggRes a v)
 queryTS' get to Nothing = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
@@ -33,4 +36,3 @@ queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                                 -> case IM.lookup ts _tIx of
                                       Nothing -> throwE $ noDataErr (Right ts)
                                       (Just dl) -> queryTS' get to (Just (ts, dl))
-
