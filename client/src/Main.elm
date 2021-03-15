@@ -4,10 +4,11 @@ import Browser
 import File exposing (File)
 import File.Select as Select
 import Either exposing (Either(..))
+import Task
 import Api exposing (..)
 import Http exposing (Error(..))
-import Date exposing (..)
 import Time exposing (..)
+import DateFormat exposing (..)
 import Css exposing (..)
 import Iso8601 exposing (..)
 import Html.Styled exposing (..)
@@ -16,7 +17,7 @@ import Html.Styled.Events exposing (..)
 import Styles exposing (..)
 import Json.Decode as D
 import Maybe exposing (..)
-import Css.Global exposing (selector, global)
+import Css.Global exposing (selector, global, typeSelector)
 import Bytes exposing (Bytes(..), Endianness(..))
 import Bytes.Decode as BD
 import File.Download as Download
@@ -40,6 +41,8 @@ type alias Model
     , queryM : QueryModel
     , gtEqChecked: Bool
     , ltEqChecked: Bool
+    , startRespTime: Int
+    , respTime: Int
     }
 
 initModel : Model
@@ -48,6 +51,8 @@ initModel = { queryR = Nothing
             , queryM = emptyQM
             , gtEqChecked = False
             , ltEqChecked = False
+            , startRespTime = 0
+            , respTime = 0
             }
 
 emptyQM : QueryModel
@@ -65,7 +70,7 @@ emptyQM =
   }
 
 maxLimit : number
-maxLimit = 15
+maxLimit = 20
 
 init : () -> (Model, Cmd Msg)
 init _ =
@@ -95,6 +100,8 @@ type Msg
   | ChangeGroupBy String
   | ChangeSort String
   | ChangeLimit String
+  | StartResponse Time.Posix
+  | EndResponse Time.Posix
   | NoOp
 
 parseError : String -> Maybe String
@@ -203,32 +210,46 @@ handleTSBytes = apiRes (ExportTS)
 clearScreen : Model -> Model
 clearScreen model = {model | serverMsg = Nothing, queryR = Nothing}
 
+startResp : List (Cmd Msg) -> Cmd Msg
+startResp req = Cmd.batch <|
+  (Task.perform StartResponse Time.now) :: req
+  
+
+endResp : List (Cmd Msg) -> Cmd Msg
+endResp req = Cmd.batch <|
+  (Task.perform EndResponse Time.now) :: req
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({queryM} as model) = 
   case msg of
     RequestFile fileToMsg ->
       (model, Select.file ["application/json"] fileToMsg)
     UploadTS file ->
-      (clearScreen model, postTimeseries file apiMsg responseToError)
+      ( clearScreen model
+      , startResp [postTimeseries file apiMsg responseToError])
     UpdateTS file ->
-      (clearScreen model, putTimeseries file apiMsg responseToError)
+      ( clearScreen model
+      , startResp [putTimeseries file apiMsg responseToError])
     DeleteTS file ->
-      (clearScreen model, deleteTimeseries file apiMsg responseToError)
+      ( clearScreen model
+      , startResp [deleteTimeseries file apiMsg responseToError])
     ClearAllTS -> 
-      (clearScreen model, deleteAllTimeseries basicApiMsg)
-    ApiMsg succeeded resMsg -> 
-      let newQR = if not succeeded then Nothing else model.queryR in
-      ({ model | queryR = newQR, serverMsg = Just resMsg }, Cmd.none)
+      ( clearScreen model
+      , startResp [deleteAllTimeseries basicApiMsg])
     QueryTS -> 
       (clearScreen model
-      , getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ)
+      , startResp [getTimeseries {queryM | limit = Just (Basics.min maxLimit <| withDefault maxLimit queryM.limit)} handleTS responseToErrorQ])
     ExportQ ->
-      (clearScreen model, getTimeseriesBytes queryM handleTSBytes responseToErrorBytes)
+      ( clearScreen model
+      , startResp [getTimeseriesBytes queryM handleTSBytes responseToErrorBytes])
+    ApiMsg succeeded resMsg -> 
+      let newQR = if not succeeded then Nothing else model.queryR in
+      ({ model | queryR = newQR, serverMsg = Just resMsg }, endResp [])
     ExportTS ts ->
-      ({ model | serverMsg = Just "Success"}
-      , Download.bytes "query.json" "application/json" ts)
+      ({ model | serverMsg = Just "Success" }
+      , endResp [Download.bytes "query.json" "application/json" ts])
     GotQR qr -> 
-      ({ model | queryR = Just qr, serverMsg = Just "Success." }, Cmd.none)
+      ({ model | queryR = Just qr, serverMsg = Just "Success." }, endResp [])
     ChangeQM qm ->
       ({ model | queryM = qm }, Cmd.none)
     ChangeGT gt -> 
@@ -263,6 +284,10 @@ update msg ({queryM} as model) =
       ({ model | queryM = { queryM | sort = stringToSort sort }}, Cmd.none)
     ChangeLimit limit ->
       ({ model | queryM = { queryM | limit = String.toInt limit }}, Cmd.none)
+    StartResponse time ->
+      ({ model | startRespTime = posixToMillis time }, Cmd.none) -- CHANGE THIS
+    EndResponse time ->
+      ({ model | respTime = posixToMillis time - model.startRespTime}, Cmd.none)
     NoOp -> 
       (model, Cmd.none)
 
@@ -276,20 +301,24 @@ view model =
       selector "@keyframes spin"
       [ Css.property "0% { transform" "rotate(0deg); } 100% { transform: rotate(360deg); }" ]  
     ],  -- For loader
+    global [
+      typeSelector "div" [ fontFamily sansSerif |> important ]
+    , typeSelector "button" [ fontFamily sansSerif |> important ]
+    ],
     wrapper [style "gap" "1vw"]
     [
       actionWrapper []
         [ queryView model
         , div [] 
           [
-            styledButton [ onClick (RequestFile UploadTS) ] [text "Upload Timeseries"]
-          , styledButton [ onClick (RequestFile UpdateTS) ] [text "Update Timeseries"]
-          , styledButton [ onClick (RequestFile DeleteTS) ] [text "Delete Timeseries"]
+            styledButton [ onClick (RequestFile UploadTS) ] [text "Upload - New Timeseries"]
+          , styledButton [ onClick (RequestFile UpdateTS) ] [text "Upload - Update Timeseries"]
+          , styledButton [ onClick (RequestFile DeleteTS) ] [text "Upload - Delete Timeseries"]
           , styledButton [ onClick ClearAllTS ] [ text "Clear All Data"]
           ]
         ]
         , tableQR model.queryR
-        , serverMsgView model.serverMsg 
+        , serverMsgView model
       ]
   ]
 
@@ -297,14 +326,14 @@ view model =
 gtToTimstamp : QueryModel -> String
 gtToTimstamp queryM =
   case queryM.gt of
-    Nothing -> withDefault "" (Maybe.map formatTimstamp queryM.ge)
-    (Just gt) -> formatTimstamp gt
+    Nothing -> withDefault "" (Maybe.map formatTimestamp queryM.ge)
+    (Just gt) -> formatTimestamp gt
 
 ltToTimestamp : QueryModel -> String
 ltToTimestamp queryM =
   case queryM.lt of
-    Nothing -> withDefault "" (Maybe.map formatTimstamp queryM.le)
-    (Just lt) -> formatTimstamp lt
+    Nothing -> withDefault "" (Maybe.map formatTimestamp queryM.le)
+    (Just lt) -> formatTimestamp lt
 
 queryView : Model -> Html Msg
 queryView ({queryM} as model) = 
@@ -317,21 +346,24 @@ queryView ({queryM} as model) =
   , toTimestamp model
   , br [] []
   , text ("Equal POSIX time (in millisec) - "
-      ++ withDefault "" (Maybe.map formatTimstamp queryM.tsEq))
+      ++ withDefault "" (Maybe.map formatTimestamp queryM.tsEq))
   , eqTimestamp queryM
   , br [] []
   , text "Tag Equal"
   , eqTag queryM
   , br [] []
-  , text "Aggregation Function"
-  , aggFuncView queryM
-  , br [] []
-  , text "Group By"
-  , groupByView queryM
-  , br [] []
-  , text "Sort Timestamp"
-  , sortView queryM
-  , br [] []
+  , div [style "display" "flex"] [
+      div [] [ 
+        p [] [ text "Aggregation Function" ]
+      , p [] [ text "Group By"  ]
+      , p [] [ text "Sort Timestamp" ]
+      ]
+    , div [style "margin-left" "20px"] [
+        p [] [aggFuncView queryM]
+      , p [] [groupByView queryM]
+      , p [] [sortView queryM]
+    ]
+  ]
   , text "Limit timeseries"
   , limitTSView queryM
   , br [] []
@@ -467,8 +499,7 @@ aggFuncView queryM =
   in
   select 
   [
-    style "margin-top" "5px"
-  , onInput ChangeAggF
+    onInput ChangeAggF
   ] viewOptions
 
 groupByToString : Maybe GroupBy -> String
@@ -499,8 +530,7 @@ groupByView queryM =
   in
   select 
   [
-    style "margin-top" "5px"
-  , onInput ChangeGroupBy
+    onInput ChangeGroupBy
   ] viewOptions
 
 sortToString : Maybe Sort -> String
@@ -528,8 +558,7 @@ sortView queryM =
   in
   select 
   [
-    style "margin-top" "5px"
-  , onInput ChangeSort
+    onInput ChangeSort
   ] viewOptions
     
 limitTSView : QueryModel -> Html Msg
@@ -544,26 +573,36 @@ limitTSView queryM =
           ] []
       ]
 
-serverMsgView : Maybe String -> Html Msg
-serverMsgView s = 
-  case s of
+serverMsgView : Model -> Html Msg
+serverMsgView model = 
+  case model.serverMsg of
     Nothing -> loader []
     Just "" -> textWrapper [] [] 
     Just error -> textWrapper [] 
-            ( h3 [] [ text  "Server message: " ]
+            ( h3 [] [ text  "Server message" ]
               :: (List.intersperse (br [] []) <| 
                     List.map text <| 
-                    String.lines <| error)
+                    (String.lines <| error ++ 
+                      ("\n\nResponse time - " ++ String.fromInt model.respTime ++ " ms")))
             )
 
-formatTimstamp : Int -> String
-formatTimstamp = fromTime << millisToPosix 
+formatTimestamp : Int -> String
+formatTimestamp timestamp = format "dd/MM/yyyy HH:mm:ss.fff" Time.utc (millisToPosix timestamp)  
+
+wrappedTableWithMsg : Html Msg -> Html Msg
+wrappedTableWithMsg table = 
+  tableWrapper [] (
+    [ h3 [] [text "Preview Data"]
+    , table
+    , p [] [text "* Showing maximum of 20 entries, if you want the full query data, you can export it."]
+    ]
+  )
 
 tableQR : Maybe QueryR -> Html Msg
 tableQR qr = 
   case qr of
-    Just (Left tss) -> tableTS tss
-    Just (Right (Left gAggR)) -> tableGroup gAggR
+    Just (Left tss) -> wrappedTableWithMsg <| tableTS tss
+    Just (Right (Left gAggR)) -> wrappedTableWithMsg <| tableGroup gAggR
     Just (Right (Right aggR)) -> tableAggR aggR
     Nothing -> div [] []
 
@@ -583,7 +622,7 @@ tableTS tss =
 toTSTableRow : TS -> Html Msg
 toTSTableRow ts = 
   styledTR []
-    [ styleT td [] [ text (formatTimstamp ts.timestamp)]
+    [ styleT td [] [ text (formatTimestamp ts.timestamp)]
     , styleT td [] [ text ts.tag]
     , styleT td [] [ text (String.fromFloat ts.value)]
     ]
@@ -606,7 +645,7 @@ toGTableRow groupAggR =
       formatGroup g = 
         case g of
           Left tag -> tag
-          Right timestamp -> formatTimstamp timestamp
+          Right timestamp -> formatTimestamp timestamp
   in
   styledTR []
     [ styleT td [] [ text (formatGroup groupAggR.group)]

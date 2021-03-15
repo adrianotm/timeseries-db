@@ -31,23 +31,30 @@ actionWrapper =
   [
     displayFlex
   , flex3 (int 0) (int 0) (pct 25)
-  , padding (px 20)
   , border3 (px 1) solid (hex "668C8F")
+  , paddingLeft (px 20)
+  , paddingBottom (px 20)
   , flexDirection column
   , justifyContent spaceBetween
   , backgroundColor (hex "E7EEEE")
   ]
 
+tableWrapper : List (Attribute msg) -> List (Html msg) -> Html msg
+tableWrapper =
+  styled Html.Styled.div
+  [
+    flex3 (int 0) (int 0) (pct 50)
+  ]
 
 styledTable : List (Attribute msg) -> List (Html msg) -> Html msg
 styledTable =
   styled Html.Styled.table
   [
     borderCollapse collapse
-  , flex3 (int 0) (int 0) (pct 50)
   , tableLayout fixed
+  , flexDirection column
+  , Css.width (pct 100)
   , border3 (px 1) solid (rgb 255 0 0)
-  , Css.width (pct 50)
   ]
 
 styleT : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> List (Html msg) -> Html msg
@@ -125,10 +132,3 @@ loader =
   , Css.height (px 30)
   ] 
   [ style "animation" "spin 2s linear infinite" ]
-
-theme : { secondary : Color, primary : Color }
-theme =
-    { primary = hex "668C8F"
-    , secondary = rgb 250 240 230
-    }
-

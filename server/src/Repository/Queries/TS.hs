@@ -36,4 +36,3 @@ queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                                 -> case IM.lookup ts _tIx of
                                       Nothing -> throwE $ noDataErr (Right ts)
                                       (Just dl) -> queryTS' get to (Just (ts, dl))
-
