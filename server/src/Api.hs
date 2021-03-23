@@ -31,16 +31,14 @@ import           Servant
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
 type TSServer api = ServerT api AcidReaderT
 
+type API = "timeseries" :> TimeseriesApi
+
 type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] ()
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
    :<|> ReqBody '[JSON] [DTS] :> Delete '[JSON] ()
    :<|> Delete '[JSON] ()
    :<|> "query" :> ReqBody '[JSON] QueryModel :> Post '[JSON] QueryR
-   :<|> "timestamps" :> QueryFlag "bounded" :> Get '[JSON] [Timestamp]
-   :<|> "tags" :> Get '[JSON] [Tag]
-
-type API = "timeseries" :> TimeseriesApi
 
 api :: Proxy API
 api = Proxy
@@ -70,21 +68,12 @@ queryData qm  | fst $ illegalQM qm = throwError $ err400 { errBody = C.pack $ sn
                                                                   (\m -> throwError $ err400 { errBody = C.pack m })
                                                                   return
 
-timestamps :: Bool -> AcidReaderT [Timestamp]
-timestamps b = ask >>= flip query' (AllTimestamps b)
-                        >>= either (\m -> throwError $ err400 { errBody = C.pack m }) return
-
-tags :: AcidReaderT [Tag]
-tags = ask >>= flip query' AllTags
-
 tsHandlers :: TSServer TimeseriesApi
 tsHandlers = insertData
         :<|> updateData
         :<|> deleteData
         :<|> deleteData []
         :<|> queryData
-        :<|> timestamps
-        :<|> tags
 
 serverT :: TSServer API
 serverT = tsHandlers

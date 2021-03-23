@@ -46,7 +46,6 @@ illegalQM Q {tsEq = (Just _), gt = (Just _)}        = (True, "Can't query 'tsEq'
 illegalQM Q {tsEq = (Just _), ge = (Just _)}        = (True, "Can't query 'tsEq' with any other timestamp condition.")
 illegalQM Q {tsEq = (Just _), lt = (Just _)}        = (True, "Can't query 'tsEq' with any other timestamp condition.")
 illegalQM Q {tsEq = (Just _), le = (Just _)}        = (True, "Can't query 'tsEq' with any other timestamp condition.")
-illegalQM Q {gt = (Just _), lt = (Just _)}          = (True, "Can't query 'tsEq' with any other timestamp condition.")
 illegalQM _                                         = (False, "")
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
