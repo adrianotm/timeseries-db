@@ -6,7 +6,6 @@ import           Control.Monad.Reader (Reader)
 import           Aggregates           (Collect (getList))
 import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
-import qualified DataS.DList          as DL
 import qualified DataS.IntMap         as IM
 import           Repository.Model     (GroupAggR (..), GroupBy (GByTag), Ix,
                                        Limit, QueryModel (..), QueryR (..), TS,
@@ -31,7 +30,7 @@ data InternalQ = InternalQ { qm  :: QueryModel
 
 type ExceptQ = ExceptT String (Reader InternalQ)
 
-type GroupEither v = Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v))
+type GroupEither v = Either [(Tag, v)] [(Timestamp, v)]
 
 type AggRes a v = Either a (GroupEither v)
 
@@ -51,9 +50,9 @@ toTagAggR = Right . Left . getList
 toTSAggR :: Collect (Timestamp, v) -> AggRes a v
 toTSAggR = Right . Right . getList
 
-toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either (DL.DList (Tag, v)) (DL.DList (Timestamp, v)) -> QueryR
+toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either [(Tag, v)] [(Timestamp, v)] -> QueryR
 toQRG f limit m = QR $ Right $ Left $ maybe id take limit $ either (trans Left) (trans Right) m
-    where trans keyF dl = foldr (\(k,v) acc -> GroupAggR (keyF k) (f v) : acc) [] dl
+    where trans keyF l = map (\(k,v) -> GroupAggR (keyF k) (f v)) l
 
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery

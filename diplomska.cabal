@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f80cbbb52f42e46261b1bb5628a416bdda186654201dc13d8f6c7b6c366fbb74
+-- hash: a03c5d217e019275b58c23a97eb6fc8cc1fc9d807dbf42f62f5d4321527287fb
 
 name:           diplomska
 version:        0.1.0.0
@@ -29,7 +29,6 @@ library
       Aggregates
       Api
       App
-      DataS.DList
       DataS.HashMap
       DataS.IntMap
       Repository.Handlers
@@ -55,7 +54,6 @@ library
     , bytestring
     , containers
     , directory
-    , dlist
     , elm-bridge
     , hashable
     , http-media
@@ -85,7 +83,7 @@ executable server
       Paths_diplomska
   hs-source-dirs:
       server
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2
   build-depends:
       acid-state
     , aeson
@@ -99,7 +97,6 @@ executable server
     , containers
     , diplomska
     , directory
-    , dlist
     , elm-bridge
     , hashable
     , http-media

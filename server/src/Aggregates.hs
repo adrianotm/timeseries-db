@@ -2,23 +2,22 @@ module Aggregates where
 
 import           Control.Monad.Except (ExceptT, MonadError (throwError))
 import           Data.Map.Strict      (Map, empty, singleton, unionWith)
-import qualified DataS.DList          as DL
 import           Repository.Model     (AggR (AggR), QueryR (..), TS, Val)
 
-newtype Collect n = Collect { getList :: DL.DList n }
+newtype Collect n = Collect { getList :: [n] }
 
 toCollect :: a -> Collect a
-toCollect a = Collect (DL.singleton a)
+toCollect a = Collect [a]
 
 instance Semigroup (Collect n) where
-  Collect x <> Collect y = Collect $ DL.append x y
+  Collect x <> Collect y = Collect (x ++ y)
 
 instance Monoid (Collect n) where
   mappend=(<>)
-  mempty = Collect DL.empty
+  mempty = Collect []
 
 getCollList :: Collect n -> [n]
-getCollList = DL.toList . getList
+getCollList = getList
 
 ---------------------------
 data Average n = Average { length :: !Int, sum :: !n }

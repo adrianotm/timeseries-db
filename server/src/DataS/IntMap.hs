@@ -1,6 +1,7 @@
 module DataS.IntMap
    ( module DataS.IntMap
    , IM.IntMap
+   , IM.map
    , IM.empty
    , IM.null
    , IM.size

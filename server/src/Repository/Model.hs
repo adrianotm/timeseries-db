@@ -31,7 +31,6 @@ import           Data.Aeson           (FromJSON, Object, ToJSON,
 import           Data.Aeson.TH        as AS (defaultOptions, deriveFromJSON,
                                              deriveJSON, fieldLabelModifier,
                                              rejectUnknownFields)
-import qualified Data.DList           as DL
 import           Data.Hashable        (Hashable)
 import qualified Data.HashMap.Strict  as HM
 import qualified Data.IntMap          as IM
@@ -82,7 +81,7 @@ data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
 data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
     deriving (Show, Generic)
 
-type TimestampIndex = IM.IntMap (DL.DList Ix)
+type TimestampIndex = IM.IntMap [Ix]
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
 data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex, -- composite timestamp/tag index
@@ -101,10 +100,6 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , limit   :: Maybe Limit
                     }
         deriving (Generic, Show)
-
-instance (SafeCopy a, Typeable a) => SafeCopy (DL.DList a) where
-    getCopy = contain $ fmap DL.fromList safeGet
-    putCopy = contain . safePut . DL.toList
 
 instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => SafeCopy (HM.HashMap k v) where
     getCopy = contain $ fmap HM.fromList safeGet

@@ -1,5 +1,4 @@
 import           Data.Aeson.Text
-import qualified Data.DList        as DL
 import           Data.Text.Lazy.IO as I
 import           Repository.Model
 
@@ -26,7 +25,7 @@ getTs i
 
 
 generateTS :: [TS]
-generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- [0..1000000]]
+generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- [0..10000000]]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)

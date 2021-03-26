@@ -44,7 +44,6 @@ dependencies:
   - lens
   - vector
   - transformers
-  - dlist
   - scientific
   - hashable
   - containers
@@ -61,9 +60,7 @@ executables:
     main: Main.hs
     source-dirs: server
     ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
+      - -O2
     dependencies:
       - base
       - diplomska

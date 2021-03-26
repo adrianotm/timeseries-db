@@ -6,7 +6,6 @@ import           Data.List           as L (foldl', map, reverse, sort, (\\))
 import           Data.Maybe          (mapMaybe)
 import qualified Data.Vector         as V
 import qualified Data.Vector.Mutable as VM
-import           DataS.DList         as DL (append, fromList, singleton, toList)
 import qualified DataS.HashMap       as HM
 import qualified DataS.IntMap        as IM
 
@@ -49,8 +48,8 @@ illegalQM Q {tsEq = (Just _), le = (Just _)}        = (True, "Can't query 'tsEq'
 illegalQM _                                         = (False, "")
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
-tIxAppendTS ts im ix = IM.unionWith DL.append im appendIM
-  where appendIM = IM.fromListWith DL.append $ [(timestamp, DL.singleton i) | TS{..} <- ts | i <- [ix..]]
+tIxAppendTS ts im ix = IM.unionWith (++) im appendIM
+  where appendIM = IM.fromListWith (++) [(timestamp, [i]) | TS{..} <- ts | i <- [ix..]]
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
 sIxAppendTS ts m ix = HM.unionWith IM.union m appendIM
@@ -59,10 +58,10 @@ sIxAppendTS ts m ix = HM.unionWith IM.union m appendIM
 
 tIxDeleteTS :: [DTS] -> TimeseriesDB -> TimestampIndex
 tIxDeleteTS dtss db@TimeseriesDB{..} = IM.differenceWith f _tIx dim
-  where dim = IM.fromListWith DL.append [(__timestamp, DL.singleton $ unsafeIndexOf (Right dts) db) | dts@DTS{..} <- dtss ]
-        f dl1 dl2 = case DL.toList dl1 \\ DL.toList dl2 of
+  where dim = IM.fromListWith (++) [(__timestamp, [unsafeIndexOf (Right dts) db]) | dts@DTS{..} <- dtss ]
+        f dl1 dl2 = case dl1 \\ dl2 of
                       []  -> Nothing
-                      ixs -> Just $ DL.fromList ixs
+                      ixs -> Just ixs
 
 sIxDeleteTS :: [DTS] -> TimeseriesDB -> TagIndex
 sIxDeleteTS dtss db@TimeseriesDB{..} = HM.differenceWith f _sIx dhm

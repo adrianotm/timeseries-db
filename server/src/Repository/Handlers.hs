@@ -20,7 +20,6 @@ import           Data.Functor              (($>), (<&>))
 import           Data.Maybe                (fromMaybe)
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
-import qualified DataS.DList               as DL
 import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
 
