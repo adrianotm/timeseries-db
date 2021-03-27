@@ -9,13 +9,10 @@
 {-# LANGUAGE TypeFamilies      #-}
 module Repository.Handlers where
 
-import           Control.Lens              ((%~), (.~))
 import           Control.Monad.Except      (forM_, runExceptT)
 import           Control.Monad.Reader      (ask, runReader, runReaderT)
 import           Control.Monad.State       (MonadState, evalState, get, put)
 import           Data.Acid                 (Query, Update, makeAcidic)
-import           Data.Foldable             (forM_)
-import           Data.Function             ((&))
 import           Data.Functor              (($>), (<&>))
 import           Data.Maybe                (fromMaybe)
 import qualified Data.Vector               as V
@@ -26,13 +23,12 @@ import qualified DataS.IntMap              as IM
 import           Repository.Model          (DTS, QueryModel (..), QueryR, TS,
                                             Tag, TimeseriesDB (..), Timestamp,
                                             data')
-import           Repository.Queries        (query)
+import           Repository.Queries        (Error, query, sIxAppendTS,
+                                            sIxDeleteTS, tIxAppendTS,
+                                            tIxDeleteTS, unsafeIndexOf,
+                                            vDeleteTS, vUpdateTS, validDelete,
+                                            validInsert, validUpdate)
 import           Repository.Queries.Shared (InternalQ (InternalQ))
-import           Repository.Utils          (Error, sIxAppendTS, sIxDeleteTS,
-                                            tIxAppendTS, tIxDeleteTS,
-                                            unsafeIndexOf, vDeleteTS,
-                                            validDelete, validInsert,
-                                            validUpdate)
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get
@@ -45,9 +41,7 @@ insertTS ts = do db@TimeseriesDB{..} <- get
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts = get >>= \db -> case validUpdate db ts of
-                               [] -> put (db & data' %~ V.modify
-                                                        (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts)))
-                                                        $> []
+                               []     -> put (vUpdateTS ts db) $> []
                                errors -> return $ take 10 errors
 
 clearTS :: [DTS] -> Update TimeseriesDB [Error]

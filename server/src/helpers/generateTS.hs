@@ -25,7 +25,7 @@ getTs i
 
 
 generateTS :: [TS]
-generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- [0..10000000]]
+generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- [0..100000]]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)

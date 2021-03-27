@@ -60,6 +60,15 @@ executables:
     main: Main.hs
     source-dirs: server
     ghc-options:
+      # - -threaded
+      # - -eventlog
+      # - -with-rtsopts=-N8
+      # - -with-rtsopts=-qg
+      # - -with-rtsopts=-I0
+      # - -with-rtsopts=-H
+      # - -with-rtsopts=-qn1
+      # - -with-rtsopts=-l
+      - -rtsopts
       - -O2
     dependencies:
       - base

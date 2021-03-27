@@ -29,6 +29,10 @@ resolver: lts-17.5
 #   subdirs:
 #   - auto-update
 #   - wai
+ghc-options:
+  # All packages
+  "$everything": -O2
+
 packages:
   - .
 

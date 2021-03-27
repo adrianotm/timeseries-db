@@ -24,8 +24,8 @@ import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..),
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
 import           Repository.Model            (DTS, QueryModel, QueryR (..), TS,
-                                              Tag, TimeseriesDB, Timestamp)
-import           Repository.Utils            (illegalQM)
+                                              Tag, TimeseriesDB, Timestamp,
+                                              illegalQM)
 import           Servant
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
