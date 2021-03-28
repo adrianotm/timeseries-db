@@ -18,6 +18,8 @@ module DataS.IntMap
    , IM.keys
    , IM.lookupMax
    , IM.lookupMin
+   , IM.update
+   , IM.delete
    , (IM.!)
    ) where
 

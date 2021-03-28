@@ -84,7 +84,7 @@ data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
 type TimestampIndex = IM.IntMap [Ix]
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
-data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex, -- composite timestamp/tag index
+data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex,
                                    _sIx   :: TagIndex, -- composite tag index
                                    _data' :: V.Vector TS } -- all data
 

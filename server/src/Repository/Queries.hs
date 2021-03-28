@@ -12,8 +12,8 @@ import           Data.Either               (fromLeft)
 import           Data.Foldable             (forM_)
 import           Data.Function             ((&))
 import           Data.Functor              ((<&>))
-import           Data.List                 as L (foldl', map, reverse, sort,
-                                                 (\\))
+import           Data.List                 as L (delete, foldl', map, reverse,
+                                                 sort, (\\))
 import           Data.Maybe                (fromMaybe, mapMaybe)
 import           Data.Monoid               (Sum (Sum, getSum))
 import           Data.Semigroup            (Max (Max, getMax),
@@ -60,34 +60,40 @@ validInsert :: TimeseriesDB -> [TS] -> [Error]
 validInsert TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> const (Just $ errMsgInsert ts) =<< IM.lookup timestamp =<< HM.lookup tag _sIx)
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
-tIxAppendTS ts im ix = foldl' (\acc (!ts, !inx) -> IM.insertWith (++) ts inx acc) im appIM
+tIxAppendTS ts im ix =
+  foldl' (\acc (!ts, !inx) -> IM.insertWith (++) ts inx acc) im appIM
         where appIM = [(timestamp, [i]) | TS{..} <- ts | i <- [ix..]]
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
-sIxAppendTS ts m ix = foldl' (\acc (!tag, !tix) -> HM.insertWith IM.union tag tix acc) m appIM
+sIxAppendTS ts m ix =
+  foldl' (\acc (!tag, !tix) -> HM.insertWith IM.union tag tix acc) m appIM
         where appIM = [(tag, IM.fromList [(timestamp, i)]) | TS{..} <- ts | i <- [ix..]]
 
 tIxDeleteTS :: [DTS] -> TimeseriesDB -> TimestampIndex
-tIxDeleteTS dtss db@TimeseriesDB{..} = IM.differenceWith f _tIx dim
-  where dim = IM.fromListWith (++) [(__timestamp, [unsafeIndexOf (Right dts) db]) | dts@DTS{..} <- dtss ]
-        f dl1 dl2 = case dl1 \\ dl2 of
-                      []  -> Nothing
-                      ixs -> Just ixs
+tIxDeleteTS dtss db@TimeseriesDB{..} =
+  foldl' (\acc (ts, ix) -> IM.update (f ix) ts acc) _tIx dts
+    where dts = [(__timestamp, unsafeIndexOf (Right dts) db) | dts@DTS{..} <- dtss ]
+          f ix l = case L.delete ix l of
+                          []  -> Nothing
+                          ixs -> Just ixs
 
 sIxDeleteTS :: [DTS] -> TimeseriesDB -> TagIndex
-sIxDeleteTS dtss db@TimeseriesDB{..} = HM.differenceWith f _sIx dhm
-  where dhm = HM.fromListWith IM.union
-                  [(__tag, IM.singleton __timestamp $ unsafeIndexOf (Right dts) db) | dts@DTS{..} <- dtss]
-        f im1 im2 = let im = IM.difference im1 im2 in
-                        if im == IM.empty then Nothing else Just im
+sIxDeleteTS dtss db@TimeseriesDB{..} =
+  foldl' (\acc (tag, ts) -> HM.update (fhm ts) tag acc) _sIx dhm
+  where dhm = [(__tag, __timestamp) | dts@DTS{..} <- dtss]
+        fhm ts im = let nim = IM.delete ts im in
+                         if nim == IM.empty then Nothing
+                                            else Just nim
 
 vDeleteTS :: [DTS] -> TimeseriesDB -> V.Vector TS
-vDeleteTS dtss db@TimeseriesDB{..} = V.concat $ L.reverse $ foldl' f [] $ L.sort $ L.map (flip unsafeIndexOf db . Right) dtss
-  where f [] ix      = let (spl1, spl2) = V.splitAt ix _data' in [spl2, spl1]
-        f (v:acc) ix = let (spl1, spl2) = V.splitAt ix v in spl2 : spl1 : acc
+vDeleteTS dtss db@TimeseriesDB{..} =
+  V.concat $ L.reverse $ foldl' f [] $ L.sort $ L.map (flip unsafeIndexOf db . Right) dtss
+    where f [] ix      = let (spl1, spl2) = V.splitAt ix _data' in [spl2, spl1]
+          f (v:acc) ix = let (spl1, spl2) = V.splitAt ix v in spl2 : spl1 : acc
 
 vUpdateTS :: [TS] -> TimeseriesDB -> TimeseriesDB
-vUpdateTS ts db = db & data' %~ V.modify (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts))
+vUpdateTS ts db =
+  db & data' %~ V.modify (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts))
 
 queryF :: Monoid m => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of

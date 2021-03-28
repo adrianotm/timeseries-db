@@ -15,6 +15,7 @@ module DataS.HashMap
    , M.foldl'
    , M.lookup
    , M.keys
+   , M.update
    , (M.!)
    ) where
 
@@ -23,7 +24,7 @@ import           Data.HashMap.Strict as M (HashMap, differenceWith, empty,
                                            foldrWithKey, foldrWithKey',
                                            fromList, fromListWith, insertWith,
                                            keys, lookup, mapMaybe, singleton,
-                                           union, unionWith, (!))
+                                           union, unionWith, update, (!))
 
 foldMapWithKey :: Monoid m => (k -> a -> m) -> HashMap k a -> m
 foldMapWithKey f = M.foldrWithKey (\k v acc -> f k v <> acc) mempty
