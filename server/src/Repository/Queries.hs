@@ -5,9 +5,8 @@
 module Repository.Queries where
 
 
-import           Aggregates                (Average, Collect, getAverage,
-                                            getCollList, handleAgg, toAvg,
-                                            toCollR, toCollect, toQR)
+import           Aggregates                (Average, getAverage, handleAgg,
+                                            toAvg, toCollR, toQR)
 import           Control.Lens              ((%~), (.~))
 import           Control.Monad.Reader      (ask)
 import           Data.Either               (fromLeft)
@@ -124,7 +123,7 @@ queryDS = ask
                     (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toQR (toQRG getSum limit)
                     (Just MinAgg) ->  queryF qm getMin (toM Min) <&> either toQR (toQRG getMin limit)
                     (Just MaxAgg) ->  queryF qm getMax (toM Max) <&> either toQR (toQRG getMax limit)
-                    Nothing -> queryF qm getCollList (toCollect . getTS _data') <&> toCollR . maybe id take limit . fromLeft []
+                    Nothing -> queryF qm id (\x -> [getTS _data' x]) <&> toCollR . maybe id take limit . fromLeft []
 
 query :: ExceptQ QueryR
 query = ask >>= \InternalQ{..}

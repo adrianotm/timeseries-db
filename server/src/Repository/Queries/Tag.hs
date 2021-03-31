@@ -9,7 +9,6 @@ import qualified Data.Vector                as V
 import qualified DataS.HashMap              as HM
 import qualified DataS.IntMap               as IM
 
-import           Aggregates                 (toCollect)
 import           Repository.Model           (GroupBy (..), Ix, QueryModel (..),
                                              Tag, TimeseriesDB (..))
 import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
@@ -19,18 +18,18 @@ import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                                       -> case groupBy of
-                                           (Just GByTag) -> toTagAggR $ toCollect (tag, foldMap' to $ qmToF qm im)
-                                           (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ix -> toCollect (ts, to ix)) (qmToF qm im)
+                                           (Just GByTag) -> toTagAggR [(tag, foldMap' to $ qmToF qm im)]
+                                           (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ix -> [(ts, to ix)]) (qmToF qm im)
                                            _ -> toCollAggR $ get $ IM.foldMap aggFunc sort to (qmToF qm im)
 
 groupTag :: Monoid m => (Ix -> m) -> ExceptQ (AggRes a m)
 groupTag to = ask >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                         -> case tsEq of
                             Nothing -> return $ toTagAggR
-                                         $ HM.foldMapWithKey (\tag im -> toCollect (tag, foldMap' to (qmToF qm im)))
+                                         $ HM.foldMapWithKey (\tag im -> [(tag, foldMap' to (qmToF qm im))])
                                          $ HM.filter (not . IM.null . qmToF qm) _sIx
                             Just ts -> return $ toTagAggR
-                                         $ HM.foldMapWithKey (\tag ix -> toCollect (tag, to ix))
+                                         $ HM.foldMapWithKey (\tag ix -> [(tag, to ix)])
                                          $ HM.mapMaybe (IM.lookup ts) _sIx
 
 queryTag :: Monoid m => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)

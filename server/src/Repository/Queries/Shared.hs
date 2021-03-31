@@ -3,7 +3,6 @@ module Repository.Queries.Shared where
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
-import           Aggregates           (Collect (getList))
 import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
 import qualified DataS.IntMap         as IM
@@ -46,12 +45,12 @@ toCollAggR :: a -> AggRes a v
 toCollAggR = Left
 {-# INLINE toCollAggR #-}
 
-toTagAggR :: Collect (Tag, v) -> AggRes a v
-toTagAggR = Right . Left . getList
+toTagAggR :: [(Tag, v)] -> AggRes a v
+toTagAggR = Right . Left
 {-# INLINE toTagAggR #-}
 
-toTSAggR :: Collect (Timestamp, v) -> AggRes a v
-toTSAggR = Right . Right . getList
+toTSAggR :: [(Timestamp, v)] -> AggRes a v
+toTSAggR = Right . Right
 {-# INLINE toTSAggR #-}
 
 toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either [(Tag, v)] [(Timestamp, v)] -> QueryR
