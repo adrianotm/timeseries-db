@@ -51,6 +51,7 @@ dependencies:
   - servant-elm
   - elm-bridge
   - http-types
+  - deepseq
 
 library:
   source-dirs: server/src
@@ -60,16 +61,16 @@ executables:
     main: Main.hs
     source-dirs: server
     ghc-options:
-      # - -threaded
-      # - -eventlog
-      # - -with-rtsopts=-N8
-      # - -with-rtsopts=-qg
-      # - -with-rtsopts=-I0
-      # - -with-rtsopts=-H
-      # - -with-rtsopts=-qn1
-      # - -with-rtsopts=-l
+      - -threaded
+      - -with-rtsopts=-N8
+      - -with-rtsopts=-gn4
+      - -with-rtsopts=-qb
+      - -with-rtsopts=-H
+      - -with-rtsopts=-I0
+      - -feager-blackholing
       - -rtsopts
       - -O2
+      - -funbox-strict-fields
     dependencies:
       - base
       - diplomska

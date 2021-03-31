@@ -21,7 +21,7 @@ foldMapL :: Monoid m => Maybe Agg -> (a -> m) -> [a] -> m
 foldMapL Nothing  = Data.Foldable.foldMap
 foldMapL (Just _) = Data.Foldable.foldMap'
 
-queryTS' :: (Monoid v) => (v -> a) -> (Ix -> v) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a v)
+queryTS' :: (Monoid m) => (m -> a) -> (Ix -> m) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a m)
 queryTS' get to Nothing = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                                     -> case groupBy of
                                           (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ixs -> toCollect (ts, foldMap' to ixs)) (qmToF qm _tIx)
@@ -32,7 +32,7 @@ queryTS' get to (Just (ts, ixs)) = ask <&> \InternalQ{qm=qm@Q{..},tdb=Timeseries
                                                   (Just GByTimestamp) -> toTSAggR $ toCollect (ts, foldMap' to ixs)
                                                   _ -> toCollAggR $ get $ foldMapL aggFunc to ixs
 
-queryTS :: (Monoid v) => (v -> a) -> (Ix -> v) -> ExceptQ (AggRes a v)
+queryTS :: (Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTS get to = ask >>= \InternalQ{qm=Q{..},tdb=TimeseriesDB{..}}
                          -> case tsEq of
                              Nothing -> queryTS' get to Nothing

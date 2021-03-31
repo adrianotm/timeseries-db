@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 import           Data.Aeson.Text
 import           Data.Text.Lazy.IO as I
 import           Repository.Model
@@ -19,9 +20,9 @@ getVal i
 getTs :: Int -> Int
 getTs i
   | even i = 1
-  | i `mod` 3 == 0  = 2
+  | i `mod` 3 == 0  = 1
   | i `mod` 5 == 0  = 3
-  | otherwise  = 4
+  | otherwise  = 1
 
 num = 2000000
 
@@ -32,7 +33,7 @@ generateDTS :: [DTS]
 generateDTS = [DTS (0 + i) (getTag i)| i <- [0..num]]
 
 demoTSFile :: IO ()
-demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)
+demoTSFile = I.writeFile "demoTSBig.json" (encodeToLazyText generateTS)
 
 demoDTSFile :: IO ()
 demoDTSFile = I.writeFile "demoTSD.json" (encodeToLazyText generateDTS)

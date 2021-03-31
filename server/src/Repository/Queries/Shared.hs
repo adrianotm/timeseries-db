@@ -39,16 +39,20 @@ noDataErr (Left tg)  = "No data for tag " ++ show tg ++ "."
 noDataErr (Right ts) = "No data for timestamp " ++ show ts ++ "."
 
 getTS :: V.Vector TS -> Ix -> TS
-getTS = (V.!)
+getTS = V.unsafeIndex
+{-# INLINE getTS #-}
 
 toCollAggR :: a -> AggRes a v
 toCollAggR = Left
+{-# INLINE toCollAggR #-}
 
 toTagAggR :: Collect (Tag, v) -> AggRes a v
 toTagAggR = Right . Left . getList
+{-# INLINE toTagAggR #-}
 
 toTSAggR :: Collect (Timestamp, v) -> AggRes a v
 toTSAggR = Right . Right . getList
+{-# INLINE toTSAggR #-}
 
 toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either [(Tag, v)] [(Timestamp, v)] -> QueryR
 toQRG f limit m = QR $ Right $ Left $ maybe id take limit $ either (trans Left) (trans Right) m

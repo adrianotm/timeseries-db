@@ -1,15 +1,17 @@
 {-# LANGUAGE BangPatterns     #-}
+{-# LANGUAGE BlockArguments   #-}
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE RecordWildCards  #-}
 module Repository.Queries where
 
 
-import           Aggregates                (getAverage, getCollList, handleAgg,
-                                            toAvg, toCollR, toCollect, toQR)
+import           Aggregates                (Average, Collect, getAverage,
+                                            getCollList, handleAgg, toAvg,
+                                            toCollR, toCollect, toQR)
 import           Control.Lens              ((%~), (.~))
 import           Control.Monad.Reader      (ask)
 import           Data.Either               (fromLeft)
-import           Data.Foldable             (forM_)
+import           Data.Foldable             (foldMap', forM_)
 import           Data.Function             ((&))
 import           Data.Functor              ((<&>))
 import           Data.List                 as L (delete, foldl', map, reverse,
@@ -33,7 +35,7 @@ import           Repository.Model          (Agg (..), DTS (..), Ix,
                                             QueryModel (..), QueryR (..),
                                             TS (..), TagIndex,
                                             TimeseriesDB (..), TimestampIndex,
-                                            data')
+                                            Val, data', onlyAgg)
 
 type Error = String
 
@@ -100,8 +102,18 @@ queryF qm = case qmToQT qm of
                 TSQuery  -> queryTS
                 TagQuery -> queryTag
 
-query :: ExceptQ QueryR
-query = ask
+queryVec :: Agg -> ExceptQ QueryR
+queryVec agg = ask >>= \InternalQ{tdb=TimeseriesDB{..}} ->
+                    let foldMMap' get to = return $ toQR $ get $ foldMap' (to . value) _data' in
+                          case agg of
+                            AvgAgg   -> handleAgg "Average failed." $ getAverage $ foldMap' (toAvg . value) _data'
+                            CountAgg -> return $ toQR $ fromIntegral $ V.length _data'
+                            SumAgg   -> foldMMap' getSum Sum
+                            MinAgg   -> foldMMap' getMin Min
+                            MaxAgg   -> foldMMap' getMax Max
+
+queryDS :: ExceptQ QueryR
+queryDS = ask
     >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
         -> let toM to = to . value . getTS _data' in
                case aggFunc of
@@ -113,3 +125,9 @@ query = ask
                     (Just MinAgg) ->  queryF qm getMin (toM Min) <&> either toQR (toQRG getMin limit)
                     (Just MaxAgg) ->  queryF qm getMax (toM Max) <&> either toQR (toQRG getMax limit)
                     Nothing -> queryF qm getCollList (toCollect . getTS _data') <&> toCollR . maybe id take limit . fromLeft []
+
+query :: ExceptQ QueryR
+query = ask >>= \InternalQ{..}
+                -> let (isOnlyAgg, agg) = onlyAgg qm in
+                    if isOnlyAgg then queryVec agg
+                                 else queryDS

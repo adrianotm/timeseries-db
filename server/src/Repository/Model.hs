@@ -1,25 +1,29 @@
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE DefaultSignatures   #-}
-{-# LANGUAGE DeriveAnyClass      #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE InstanceSigs        #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE RecordWildCards     #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
-{-# LANGUAGE TypeApplications    #-}
-{-# LANGUAGE TypeInType          #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE DefaultSignatures     #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeInType            #-}
+{-# LANGUAGE TypeOperators         #-}
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
+import           Control.DeepSeq      (NFData)
 import           Control.Lens         (makeLenses)
-import           Control.Monad        (forM)
+import           Control.Monad        (forM, liftM)
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Fail   (fail)
 import           Control.Monad.Reader (Reader)
@@ -40,18 +44,18 @@ import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
                                        getCopy, putCopy, safeGet, safePut)
 import           Data.Scientific      (toBoundedInteger)
 import qualified Data.Set             as S
-import           Data.Text            (Text, unpack)
+import           Data.Text            (Text)
 import           Data.Typeable        (Typeable)
-import qualified Data.Vector          as V
+import qualified Data.Vector          as V (Vector)
 import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
                                               deriveElmDef)
-import           GHC.Generics
+import           GHC.Generics         (Generic)
 
 type Timestamp = Int
 type Val = Double
 type Ix = Int
 type Limit = Int
-type Tag = String
+type Tag = Text
 
 data GroupBy = GByTimestamp | GByTag
     deriving (Show)
@@ -75,7 +79,9 @@ data GroupAggR = GroupAggR { _group :: Either Tag Timestamp, _result :: Val}
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
-data TS = TS { timestamp :: Timestamp, tag :: Tag, value :: Val }
+data TS = TS { timestamp :: {-# UNPACK #-} !Timestamp
+             , tag       :: {-# UNPACK #-} !Tag
+             , value     :: {-# UNPACK #-} !Val }
     deriving (Show, Generic)
 
 data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
@@ -100,6 +106,10 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , limit   :: Maybe Limit
                     }
         deriving (Generic, Show)
+
+onlyAgg :: QueryModel -> (Bool, Agg)
+onlyAgg (Q Nothing Nothing Nothing Nothing Nothing Nothing (Just a) Nothing _ _) = (True, a)
+onlyAgg _ = (False, CountAgg)
 
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'groupBy'.")
