@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 143ac2c4c5b8232d7389ab5555b7b23336ddb7e8743c3f8895fdde94322827e1
+-- hash: f328b26f1b915f3ed42ab9b4b14488d5befe0053ded8e765cd048d8a27b89e2c
 
 name:           diplomska
 version:        0.1.0.0
@@ -55,12 +55,14 @@ library
     , deepseq
     , directory
     , elm-bridge
+    , ghc-compact
     , hashable
     , http-media
     , http-types
     , lens
     , lucid
     , mtl
+    , parallel
     , safecopy
     , scientific
     , servant
@@ -83,7 +85,7 @@ executable server
       Paths_diplomska
   hs-source-dirs:
       server
-  ghc-options: -threaded -with-rtsopts=-N8 -with-rtsopts=-gn4 -with-rtsopts=-qb -with-rtsopts=-H -with-rtsopts=-I0 -feager-blackholing -rtsopts -O2 -funbox-strict-fields
+  ghc-options: -threaded "-with-rtsopts=-xn -I0 -G3" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -O2
   build-depends:
       acid-state
     , aeson
@@ -99,12 +101,14 @@ executable server
     , diplomska
     , directory
     , elm-bridge
+    , ghc-compact
     , hashable
     , http-media
     , http-types
     , lens
     , lucid
     , mtl
+    , parallel
     , safecopy
     , scientific
     , servant

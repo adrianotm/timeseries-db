@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
-module Repository.Queries.TS where
+module Repository.Queries.TS
+  (queryTS)
+  where
 
 import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except (throwE)
@@ -8,7 +10,6 @@ import           Data.Functor               ((<&>))
 import qualified Data.Map.Strict            as M
 import qualified Data.Vector                as V
 import qualified DataS.IntMap               as IM
-
 import           Repository.Model           (Agg, GroupBy (..), Ix,
                                              QueryModel (..), Tag,
                                              TimeseriesDB (..), Timestamp)
@@ -19,6 +20,7 @@ import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
 foldMapL :: Monoid m => Maybe Agg -> (a -> m) -> [a] -> m
 foldMapL Nothing  = Data.Foldable.foldMap
 foldMapL (Just _) = Data.Foldable.foldMap'
+{-# INLINE foldMapL #-}
 
 queryTS' :: (Monoid m) => (m -> a) -> (Ix -> m) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a m)
 queryTS' get to Nothing = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}

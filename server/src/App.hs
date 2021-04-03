@@ -4,14 +4,13 @@ module App
 
 import           Control.Exception.Base   (bracket)
 
+import           Api                      (app)
 import           Data.Acid.Local          (createCheckpointAndClose,
                                            openLocalState)
 import           Data.IntMap              as IM (empty)
 import           Data.Vector              as V (empty)
 import           DataS.HashMap            as HM (empty)
 import           Network.Wai.Handler.Warp (run)
-
-import           Api                      (app)
 import           Repository.Model         (TimeseriesDB (TimeseriesDB))
 
 startApp :: IO ()

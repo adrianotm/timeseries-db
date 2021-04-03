@@ -20,9 +20,9 @@ import qualified Data.Vector.Mutable       as VM
 import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
 
-import           Repository.Model          (DTS, QueryModel (..), QueryR, TS,
-                                            Tag, TimeseriesDB (..), Timestamp,
-                                            data')
+import           Repository.Model          (DB, DTS, QueryModel (..), QueryR,
+                                            TS, Tag, TimeseriesDB (..),
+                                            Timestamp, data')
 import           Repository.Queries        (Error, query, sIxAppendTS,
                                             sIxDeleteTS, tIxAppendTS,
                                             tIxDeleteTS, unsafeIndexOf,
@@ -58,15 +58,4 @@ filterTS :: QueryModel
          -> Query TimeseriesDB (Either Error QueryR)
 filterTS qm@Q{..} = ask <&> runReader (runExceptT query) . InternalQ qm
 
-allTimestamps :: Bool -> Query TimeseriesDB (Either Error [Timestamp])
-allTimestamps bounded = ask <&> \db ->
-                                  if bounded
-                                    then fromMaybe (Left "No data.") $
-                                          (\(min, _) (max, _) -> Right [min, max])
-                                            <$> IM.lookupMin (_tIx db) <*> IM.lookupMax (_tIx db)
-                                    else Right $ IM.keys $ _tIx db
-
-allTags :: Query TimeseriesDB [Tag]
-allTags = ask <&> HM.keys . _sIx
-
-makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS, 'allTimestamps, 'allTags]
+makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS]

@@ -1,8 +1,20 @@
-{-# LANGUAGE BangPatterns     #-}
 {-# LANGUAGE BlockArguments   #-}
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE RecordWildCards  #-}
-module Repository.Queries where
+module Repository.Queries
+  (Error,
+  unsafeIndexOf,
+  validUpdate,
+  validInsert,
+  validDelete,
+  tIxAppendTS,
+  sIxAppendTS,
+  tIxDeleteTS,
+  sIxDeleteTS,
+  vDeleteTS,
+  vUpdateTS,
+  query)
+  where
 
 
 import           Aggregates                (Average, getAverage, handleAgg,
@@ -62,12 +74,12 @@ validInsert TimeseriesDB{..} = mapMaybe (\ts@TS{..} -> const (Just $ errMsgInser
 
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
 tIxAppendTS ts im ix =
-  foldl' (\acc (!ts, !inx) -> IM.insertWith (++) ts inx acc) im appIM
+  foldl' (\acc (ts, inx) -> IM.insertWith (++) ts inx acc) im appIM
         where appIM = [(timestamp, [i]) | TS{..} <- ts | i <- [ix..]]
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
 sIxAppendTS ts m ix =
-  foldl' (\acc (!tag, !tix) -> HM.insertWith IM.union tag tix acc) m appIM
+  foldl' (\acc (tag, tix) -> HM.insertWith IM.union tag tix acc) m appIM
         where appIM = [(tag, IM.fromList [(timestamp, i)]) | TS{..} <- ts | i <- [ix..]]
 
 tIxDeleteTS :: [DTS] -> TimeseriesDB -> TimestampIndex
@@ -114,13 +126,13 @@ queryVec agg = ask >>= \InternalQ{tdb=TimeseriesDB{..}} ->
 queryDS :: ExceptQ QueryR
 queryDS = ask
     >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
-        -> let toM to = to . value . getTS _data' in
+        -> let toM to ix = to $! value $ getTS _data' ix in
                case aggFunc of
                     (Just AvgAgg) -> queryF qm getAverage (toM toAvg) >>=
                                                 either (handleAgg "Average failed.")
                                                        (return . toQRG (fromMaybe 0 . getAverage) limit)
                     (Just SumAgg) ->  queryF qm getSum (toM Sum) <&> either toQR (toQRG getSum limit)
-                    (Just CountAgg) ->  queryF qm getSum (const $ Sum 1) <&> either toQR (toQRG getSum limit)
+                    (Just CountAgg) ->  queryF qm getSum (const $! Sum 1) <&> either toQR (toQRG getSum limit)
                     (Just MinAgg) ->  queryF qm getMin (toM Min) <&> either toQR (toQRG getMin limit)
                     (Just MaxAgg) ->  queryF qm getMax (toM Max) <&> either toQR (toQRG getMax limit)
                     Nothing -> queryF qm id (\x -> [getTS _data' x]) <&> toCollR . maybe id take limit . fromLeft []

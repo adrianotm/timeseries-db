@@ -52,6 +52,8 @@ dependencies:
   - elm-bridge
   - http-types
   - deepseq
+  - parallel
+  - ghc-compact
 
 library:
   source-dirs: server/src
@@ -62,15 +64,14 @@ executables:
     source-dirs: server
     ghc-options:
       - -threaded
-      - -with-rtsopts=-N8
-      - -with-rtsopts=-gn4
-      - -with-rtsopts=-qb
-      - -with-rtsopts=-H
-      - -with-rtsopts=-I0
-      - -feager-blackholing
-      - -rtsopts
+      # - '"-with-rtsopts=-N8 -qg1 -xn -s -lf"'
+      - '"-with-rtsopts=-xn -I0 -G3"'
+      - -fexcess-precision
+      - -funfolding-use-threshold=16
+      - -optc-O3
+      - -optc-ffast-math
+      - -eventlog
       - -O2
-      - -funbox-strict-fields
     dependencies:
       - base
       - diplomska

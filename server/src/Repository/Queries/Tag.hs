@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
-module Repository.Queries.Tag where
+module Repository.Queries.Tag
+    (queryTag)
+    where
 
 import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except (throwE)

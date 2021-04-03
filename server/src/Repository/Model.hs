@@ -21,7 +21,6 @@
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
-import           Control.DeepSeq      (NFData)
 import           Control.Lens         (makeLenses)
 import           Control.Monad        (forM, liftM)
 import           Control.Monad.Except (ExceptT)
@@ -79,9 +78,9 @@ data GroupAggR = GroupAggR { _group :: Either Tag Timestamp, _result :: Val}
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
-data TS = TS { timestamp :: {-# UNPACK #-} !Timestamp
-             , tag       :: {-# UNPACK #-} !Tag
-             , value     :: {-# UNPACK #-} !Val }
+data TS = TS { timestamp :: !Timestamp
+             , tag       :: !Tag
+             , value     :: !Val }
     deriving (Show, Generic)
 
 data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
@@ -90,9 +89,9 @@ data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
 type TimestampIndex = IM.IntMap [Ix]
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
-data TimeseriesDB = TimeseriesDB { _tIx   :: TimestampIndex,
-                                   _sIx   :: TagIndex, -- composite tag index
-                                   _data' :: V.Vector TS } -- all data
+data TimeseriesDB = TimeseriesDB { _tIx   :: !TimestampIndex,
+                                   _sIx   :: !TagIndex, -- composite tag index
+                                   _data' :: !(V.Vector TS) } -- all data
 
 data QueryModel = Q { gt      :: Maybe Timestamp
                     , lt      :: Maybe Timestamp

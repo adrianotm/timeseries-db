@@ -74,7 +74,9 @@ foldMap :: Monoid m => Maybe Agg -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
 foldMap Nothing (Just Desc) = foldMapDesc
 foldMap Nothing _           = Data.Foldable.foldMap
 foldMap (Just _) _          = Data.Foldable.foldMap'
+{-# INLINE foldMap #-}
 
 foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey (Just Desc) = foldMapWithKeyDesc
 foldMapWithKey _           = IM.foldMapWithKey
+{-# INLINE foldMapWithKey #-}
