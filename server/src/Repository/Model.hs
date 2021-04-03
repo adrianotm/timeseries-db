@@ -21,6 +21,7 @@
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
+import           Control.DeepSeq      (NFData)
 import           Control.Lens         (makeLenses)
 import           Control.Monad        (forM, liftM)
 import           Control.Monad.Except (ExceptT)
@@ -48,7 +49,9 @@ import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V (Vector)
 import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
                                               deriveElmDef)
+import           GHC.Compact          (Compact, compact, getCompact)
 import           GHC.Generics         (Generic)
+import           System.IO.Unsafe     (unsafePerformIO)
 
 type Timestamp = Int
 type Val = Double
@@ -81,7 +84,7 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
 data TS = TS { timestamp :: !Timestamp
              , tag       :: !Tag
              , value     :: !Val }
-    deriving (Show, Generic)
+    deriving (Show, Generic, NFData)
 
 data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
     deriving (Show, Generic)
@@ -92,6 +95,8 @@ type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 data TimeseriesDB = TimeseriesDB { _tIx   :: !TimestampIndex,
                                    _sIx   :: !TagIndex, -- composite tag index
                                    _data' :: !(V.Vector TS) } -- all data
+newtype DB = DB (Compact TimeseriesDB)
+    deriving (Generic)
 
 data QueryModel = Q { gt      :: Maybe Timestamp
                     , lt      :: Maybe Timestamp
@@ -123,6 +128,10 @@ illegalQM _                                         = (False, "")
 instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => SafeCopy (HM.HashMap k v) where
     getCopy = contain $ fmap HM.fromList safeGet
     putCopy = contain . safePut . HM.toList
+
+instance SafeCopy DB where
+    getCopy = contain $ fmap (DB . unsafePerformIO . compact) safeGet
+    putCopy (DB a) = contain $ safePut $ getCompact a
 
 instance Bounded Double where
     { minBound = -1/0; maxBound = 1/0 }

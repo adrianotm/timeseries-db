@@ -23,12 +23,12 @@ import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..),
                                               CorsResourcePolicy, cors,
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
-import           Repository.Model            (DTS, QueryModel, QueryR (..), TS,
-                                              Tag, TimeseriesDB, Timestamp,
+import           Repository.Model            (DB, DTS, QueryModel, QueryR (..),
+                                              TS, Tag, TimeseriesDB, Timestamp,
                                               illegalQM)
 import           Servant
 
-type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
+type AcidReaderT = ReaderT (AcidState DB) Handler
 type TSServer api = ServerT api AcidReaderT
 
 type API = "timeseries" :> TimeseriesApi
@@ -88,5 +88,5 @@ corsPolicy = cors (const $ Just policy)
               corsRequestHeaders = [ "Content-Type" ]
           }
 
-app :: AcidState TimeseriesDB -> Application
+app :: AcidState DB -> Application
 app db = corsPolicy $ serve api $ hoistServer api (`runReaderT` db) serverT
