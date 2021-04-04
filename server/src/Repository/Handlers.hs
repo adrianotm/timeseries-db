@@ -7,7 +7,12 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
-module Repository.Handlers where
+module Repository.Handlers
+  ( InsertTS(InsertTS)
+  , UpdateTS(UpdateTS)
+  , ClearTS(ClearTS)
+  , FilterTS(FilterTS))
+  where
 
 import           Control.Monad.Except      (forM_, runExceptT)
 import           Control.Monad.Reader      (ask, runReader, runReaderT)
@@ -37,9 +42,11 @@ getTSDB (DB a) = return $ getCompact a
 
 unsafeCompactAddDB :: Compact TimeseriesDB -> TimeseriesDB -> DB
 unsafeCompactAddDB c = DB . unsafePerformIO . compactAdd c
+{-# NOINLINE unsafeCompactAddDB #-}
 
 unsafeCompactDB :: TimeseriesDB -> DB
 unsafeCompactDB = DB . unsafePerformIO . compact
+{-# NOINLINE unsafeCompactDB #-}
 
 insertTS :: [TS] -> Update DB [Error]
 insertTS ts = do DB cdb <- get

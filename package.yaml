@@ -29,7 +29,6 @@ dependencies:
   - text
   - time
   - base-compat-batteries
-  - mtl
   - attoparsec
   - bytestring
   - string-conversions
@@ -38,6 +37,7 @@ dependencies:
   - directory
   - blaze-markup
   - blaze-html
+  - mtl
   - array
   - acid-state
   - safecopy
@@ -64,13 +64,13 @@ executables:
     source-dirs: server
     ghc-options:
       - -threaded
-      # - '"-with-rtsopts=-N8 -qg1 -I0 -s -lf"'
-      - '"-with-rtsopts=-xn -I0 -s -lf"'
+      - '"-with-rtsopts=-xn -I0"'
       - -fexcess-precision
       - -funfolding-use-threshold=16
       - -optc-O3
       - -optc-ffast-math
       - -eventlog
+      - -Wall
       - -O2
     dependencies:
       - base

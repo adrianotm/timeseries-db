@@ -126,15 +126,17 @@ queryVec agg = ask >>= \InternalQ{tdb=TimeseriesDB{..}} ->
 queryDS :: ExceptQ QueryR
 queryDS = ask
     >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
-        -> let toM to ix = to $! value $ getTS _data' ix in
+        -> let toM to ix = to $! value $ getTS _data' ix
+               simpleAgg get to = queryF qm get to <&> either toQR (toQRG get limit)
+           in
                case aggFunc of
                     (Just AvgAgg) -> queryF qm getAverage (toM toAvg) >>=
                                                 either (handleAgg "Average failed.")
                                                        (return . toQRG (fromMaybe 0 . getAverage) limit)
-                    (Just SumAgg) ->  queryF qm getSum (toM Sum) <&> either toQR (toQRG getSum limit)
-                    (Just CountAgg) ->  queryF qm getSum (const $! Sum 1) <&> either toQR (toQRG getSum limit)
-                    (Just MinAgg) ->  queryF qm getMin (toM Min) <&> either toQR (toQRG getMin limit)
-                    (Just MaxAgg) ->  queryF qm getMax (toM Max) <&> either toQR (toQRG getMax limit)
+                    (Just SumAgg) ->  simpleAgg getSum (toM Sum)
+                    (Just CountAgg) ->  simpleAgg getSum (const $! Sum 1)
+                    (Just MinAgg) ->  simpleAgg getMin (toM Min)
+                    (Just MaxAgg) ->  simpleAgg getMax (toM Max)
                     Nothing -> queryF qm id (\x -> [getTS _data' x]) <&> toCollR . maybe id take limit . fromLeft []
 
 query :: ExceptQ QueryR
