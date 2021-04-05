@@ -40,6 +40,7 @@ import           System.IO.Unsafe          (unsafePerformIO)
 getTSDB :: Monad m => DB -> m TimeseriesDB
 getTSDB (DB a) = return $ getCompact a
 
+-- Using GHC.Compact is a hack, IO is not allowed in acid-state events
 unsafeCompactAddDB :: Compact TimeseriesDB -> TimeseriesDB -> DB
 unsafeCompactAddDB c = DB . unsafePerformIO . compactAdd c
 {-# NOINLINE unsafeCompactAddDB #-}
