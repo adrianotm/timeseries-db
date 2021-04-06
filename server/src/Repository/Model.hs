@@ -21,7 +21,7 @@
 module Repository.Model where
 
 import           Control.Applicative  ((<|>))
-import           Control.DeepSeq      (NFData)
+import           Control.DeepSeq      (NFData, deepseq, force)
 import           Control.Lens         (makeLenses)
 import           Control.Monad        (forM, liftM)
 import           Control.Monad.Except (ExceptT)
@@ -49,7 +49,6 @@ import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V (Vector)
 import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
                                               deriveElmDef)
-import           GHC.Compact          (Compact, compact, getCompact)
 import           GHC.Generics         (Generic)
 import           System.IO.Unsafe     (unsafePerformIO)
 
@@ -95,8 +94,7 @@ type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 data TimeseriesDB = TimeseriesDB { _tIx   :: !TimestampIndex,
                                    _sIx   :: !TagIndex, -- composite tag index
                                    _data' :: !(V.Vector TS) } -- all data
-newtype DB = DB (Compact TimeseriesDB)
-    deriving (Generic)
+                    deriving (Generic, NFData)
 
 data QueryModel = Q { gt      :: Maybe Timestamp
                     , lt      :: Maybe Timestamp
@@ -129,9 +127,10 @@ instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => S
     getCopy = contain $ fmap HM.fromList safeGet
     putCopy = contain . safePut . HM.toList
 
-instance SafeCopy DB where
-    getCopy = contain $ fmap (DB . unsafePerformIO . compact) safeGet
-    putCopy (DB a) = contain $ safePut $ getCompact a
+instance SafeCopy TimeseriesDB where
+    getCopy = contain $ (\a b c -> let db = TimeseriesDB a b c in force db)
+                         <$> safeGet <*> safeGet <*> safeGet
+    putCopy TimeseriesDB{..} = contain $ do safePut _tIx; safePut _sIx; safePut _data';
 
 instance Bounded Double where
     { minBound = -1/0; maxBound = 1/0 }
@@ -210,4 +209,3 @@ deriveSafeCopy 0 'base ''Agg
 deriveSafeCopy 0 'base ''GroupBy
 deriveSafeCopy 0 'base ''Sort
 deriveSafeCopy 0 'base ''QueryModel
-deriveSafeCopy 0 'base ''TimeseriesDB

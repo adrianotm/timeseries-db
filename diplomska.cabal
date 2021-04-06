@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e1e802411dd38a04df5c8f9d0874c991ab8f32085e7583589ee581cc94a861f9
+-- hash: 62403499d829217b9b5c8a2215af3645e0d5be7b76a47afcafbca02bcad47606
 
 name:           diplomska
 version:        0.1.0.0
@@ -55,7 +55,6 @@ library
     , deepseq
     , directory
     , elm-bridge
-    , ghc-compact
     , hashable
     , http-media
     , http-types
@@ -101,7 +100,6 @@ executable server
     , diplomska
     , directory
     , elm-bridge
-    , ghc-compact
     , hashable
     , http-media
     , http-types

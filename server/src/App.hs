@@ -10,12 +10,11 @@ import           Data.Acid.Local          (createCheckpointAndClose,
 import           Data.IntMap              as IM (empty)
 import           Data.Vector              as V (empty)
 import           DataS.HashMap            as HM (empty)
-import           GHC.Compact              (compact)
 import           Network.Wai.Handler.Warp (run)
-import           Repository.Model         (DB (..), TimeseriesDB (TimeseriesDB))
+import           Repository.Model         (TimeseriesDB (TimeseriesDB))
 
 startApp :: IO ()
 startApp = bracket
-            (compact (TimeseriesDB IM.empty HM.empty V.empty) >>= openLocalState . DB)
+            (openLocalState (TimeseriesDB IM.empty HM.empty V.empty))
             createCheckpointAndClose
             (run 8081 . app)

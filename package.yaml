@@ -53,7 +53,6 @@ dependencies:
   - http-types
   - deepseq
   - parallel
-  - ghc-compact
 
 library:
   source-dirs: server/src
