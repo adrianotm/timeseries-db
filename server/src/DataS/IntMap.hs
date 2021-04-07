@@ -14,6 +14,7 @@ module DataS.IntMap
    , IM.fromList
    , IM.fromListWith
    , IM.lookup
+   , IM.insert
    , IM.insertWith
    , IM.keys
    , IM.lookupMax

@@ -83,7 +83,7 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
 data TS = TS { timestamp :: !Timestamp
              , tag       :: !Tag
              , value     :: !Val }
-    deriving (Show, Generic, NFData)
+    deriving (Show, Eq, Generic, NFData)
 
 data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
     deriving (Show, Generic)

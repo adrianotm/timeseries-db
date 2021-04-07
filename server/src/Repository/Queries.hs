@@ -1,6 +1,7 @@
 {-# LANGUAGE BlockArguments   #-}
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE RecordWildCards  #-}
+{-# LANGUAGE TupleSections    #-}
 module Repository.Queries
   (Error,
   unsafeIndexOf,
@@ -19,6 +20,7 @@ module Repository.Queries
 
 import           Aggregates                (Average, getAverage, handleAgg,
                                             toAvg, toCollR, toQR)
+import           Control.DeepSeq           (force)
 import           Control.Lens              ((%~), (.~))
 import           Control.Monad.Reader      (ask)
 import           Data.Either               (fromLeft)
@@ -35,18 +37,17 @@ import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
 import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
+import           Repository.Model          (Agg (..), DTS (..), Ix,
+                                            QueryModel (..), QueryR (..),
+                                            TS (..), TagIndex,
+                                            TimeseriesDB (..), TimestampIndex,
+                                            Val, data', onlyAgg)
 import           Repository.Queries.Shared (AggRes, ExceptQ,
                                             InternalQ (InternalQ, qm, tdb),
                                             QueryType (TSQuery, TagQuery),
                                             getTS, qmToQT, toQRG)
 import           Repository.Queries.Tag    (queryTag)
 import           Repository.Queries.TS     (queryTS)
-
-import           Repository.Model          (Agg (..), DTS (..), Ix,
-                                            QueryModel (..), QueryR (..),
-                                            TS (..), TagIndex,
-                                            TimeseriesDB (..), TimestampIndex,
-                                            Val, data', onlyAgg)
 
 type Error = String
 
@@ -79,8 +80,12 @@ tIxAppendTS ts im ix =
 
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
 sIxAppendTS ts m ix =
-  foldl' (\acc (tag, tix) -> HM.insertWith IM.union tag tix acc) m appIM
-        where appIM = [(tag, IM.fromList [(timestamp, i)]) | TS{..} <- ts | i <- [ix..]]
+  foldl' f m appIM
+        where appIM = [(tag, timestamp, i) | TS{..} <- ts | i <- [ix..]]
+              f acc (tag, timestamp, ix)
+                = case HM.lookup tag acc of
+                     Nothing -> HM.insert tag (IM.fromList [(timestamp, ix)]) acc
+                     (Just im) -> HM.insert tag (IM.insert timestamp ix im) acc
 
 tIxDeleteTS :: [DTS] -> TimeseriesDB -> TimestampIndex
 tIxDeleteTS dtss db@TimeseriesDB{..} =
@@ -99,14 +104,13 @@ sIxDeleteTS dtss db@TimeseriesDB{..} =
                                             else Just nim
 
 vDeleteTS :: [DTS] -> TimeseriesDB -> V.Vector TS
-vDeleteTS dtss db@TimeseriesDB{..} =
-  V.concat $ L.reverse $ foldl' f [] $ L.sort $ L.map (flip unsafeIndexOf db . Right) dtss
-    where f [] ix      = let (spl1, spl2) = V.splitAt ix _data' in [spl2, spl1]
-          f (v:acc) ix = let (spl1, spl2) = V.splitAt ix v in spl2 : spl1 : acc
+vDeleteTS dtss db@TimeseriesDB{..} = V.force $ V.ifilter f _data'
+  where f ix _ = not $ HM.member ix ixs
+        ixs = force $ HM.fromList $ L.map ((,True) . flip unsafeIndexOf db . Right) dtss
 
 vUpdateTS :: [TS] -> TimeseriesDB -> TimeseriesDB
 vUpdateTS ts db =
-  db & data' %~ V.modify (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts))
+  db & data' %~ V.force . V.modify (\v -> forM_ ts (\ts -> VM.write v (unsafeIndexOf (Left ts) db) ts))
 
 queryF :: Monoid m => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of

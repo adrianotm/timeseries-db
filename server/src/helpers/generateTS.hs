@@ -24,7 +24,7 @@ getTs i
   | i `mod` 5 == 0  = 3
   | otherwise  = 1
 
-num = 2000000
+num = 200000
 interval = [0..num]
 
 generateTS :: [TS]
@@ -34,7 +34,7 @@ generateDTS :: [DTS]
 generateDTS = [DTS (0 + i) (getTag i)| i <- interval]
 
 demoTSFile :: IO ()
-demoTSFile = I.writeFile "demoTSSemiBig.json" (encodeToLazyText generateTS)
+demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)
 
 demoDTSFile :: IO ()
 demoDTSFile = I.writeFile "demoTSD.json" (encodeToLazyText generateDTS)
