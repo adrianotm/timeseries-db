@@ -14,6 +14,7 @@ module Repository.Handlers
   , FilterTS(FilterTS))
   where
 
+import           Control.DeepSeq           (force)
 import           Control.Monad.Except      (forM_, runExceptT)
 import           Control.Monad.Reader      (ask, runReader, runReaderT)
 import           Control.Monad.State       (MonadState, evalState, get, put)
@@ -39,14 +40,15 @@ insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get
                  case validInsert db ts of
                    [] -> let startIx = V.length _data' in
-                                 put (TimeseriesDB (tIxAppendTS ts _tIx startIx)
+                                 put (force $
+                                      TimeseriesDB (tIxAppendTS ts _tIx startIx)
                                                    (sIxAppendTS ts _sIx startIx)
                                                    (V.force $ _data' V.++ V.fromList ts)) $> []
                    errors -> return $ take 10 errors
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts = get >>= \db -> case validUpdate db ts of
-                               []     -> put (vUpdateTS ts db) $> []
+                               []     -> put (force $ vUpdateTS ts db) $> []
                                errors -> return $ take 10 errors
 
 clearTS :: [DTS] -> Update TimeseriesDB [Error]
@@ -54,7 +56,8 @@ clearTS dts = case dts of
                 [] -> put (TimeseriesDB IM.empty HM.empty V.empty) $> []
                 dtss -> get >>= \db@TimeseriesDB{..}
                           -> case validDelete db dtss of
-                              []     -> put (TimeseriesDB (tIxDeleteTS dtss db)
+                              []     -> put (force $
+                                             TimeseriesDB (tIxDeleteTS dtss db)
                                                           (sIxDeleteTS dtss db)
                                                           (V.force $ vDeleteTS dtss db)) $> []
                               errors -> return $ take 10 errors
