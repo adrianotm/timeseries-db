@@ -30,8 +30,8 @@ interval = [0..num]
 generateTS :: [TS]
 generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- interval]
 
-generateDTS :: [DTS]
-generateDTS = [DTS (0 + i) (getTag i)| i <- interval]
+generateDTS :: [TS']
+generateDTS = [TS' (0 + i) (getTag i)| i <- interval]
 
 demoTSFile :: IO ()
 demoTSFile = I.writeFile "demoTS.json" (encodeToLazyText generateTS)

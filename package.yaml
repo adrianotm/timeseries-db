@@ -53,6 +53,7 @@ dependencies:
   - http-types
   - deepseq
   - parallel
+  - mono-traversable
 
 library:
   source-dirs: server/src

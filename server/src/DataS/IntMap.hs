@@ -25,7 +25,6 @@ module DataS.IntMap
    ) where
 
 import           Data.Foldable        (Foldable (foldMap, foldMap'))
-import qualified Data.HashMap.Strict  as HM
 import           Data.IntMap.Internal (IntMap (Bin, Nil, Tip), Key, mask,
                                        nomatch, zero)
 import qualified Data.IntMap.Strict   as IM

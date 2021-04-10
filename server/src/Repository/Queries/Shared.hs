@@ -1,14 +1,19 @@
+{-# LANGUAGE RecordWildCards #-}
 module Repository.Queries.Shared where
 
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
-import qualified Data.Map.Strict      as M
 import qualified Data.Vector          as V
+import qualified Data.Vector.Unboxed  as UV
 import qualified DataS.IntMap         as IM
 import           Repository.Model     (GroupAggR (..), GroupBy (GByTag), Ix,
-                                       Limit, QueryModel (..), QueryR (..), TS,
-                                       Tag, TimeseriesDB, Timestamp, Val)
+                                       Limit, QueryModel (..), QueryR (..),
+                                       TS (..), TS' (..), Tag,
+                                       TimeseriesDB (..), Timestamp, Val)
+
+simpleTS :: TS -> TS'
+simpleTS (TS time tag val) = TS' time tag
 
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGT False gt . IM.getLT False lt
@@ -37,9 +42,10 @@ noDataErr :: Either Tag Timestamp -> String
 noDataErr (Left tg)  = "No data for tag " ++ show tg ++ "."
 noDataErr (Right ts) = "No data for timestamp " ++ show ts ++ "."
 
-getTS :: V.Vector TS -> Ix -> TS
-getTS = V.unsafeIndex
-{-# INLINE getTS #-}
+composeTS :: TimeseriesDB -> Ix -> TS
+composeTS TimeseriesDB{..} ix = TS timestamp' tag' val
+    where TS'{..} = V.unsafeIndex _data' ix
+          val = UV.unsafeIndex _dataV' ix
 
 toCollAggR :: a -> AggRes a v
 toCollAggR = Left

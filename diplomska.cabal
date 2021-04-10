@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 62403499d829217b9b5c8a2215af3645e0d5be7b76a47afcafbca02bcad47606
+-- hash: c24aa02f6c74db8a8e7446b464ca224e3bc7c594f7df3b6cc4c3e74f692645d3
 
 name:           diplomska
 version:        0.1.0.0
@@ -60,6 +60,7 @@ library
     , http-types
     , lens
     , lucid
+    , mono-traversable
     , mtl
     , parallel
     , safecopy
@@ -105,6 +106,7 @@ executable server
     , http-types
     , lens
     , lucid
+    , mono-traversable
     , mtl
     , parallel
     , safecopy

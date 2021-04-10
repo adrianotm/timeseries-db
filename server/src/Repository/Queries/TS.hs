@@ -7,7 +7,6 @@ import           Control.Monad.Reader       (Reader, ask)
 import           Control.Monad.Trans.Except (throwE)
 import           Data.Foldable              (Foldable (foldMap, foldMap'))
 import           Data.Functor               ((<&>))
-import qualified Data.Map.Strict            as M
 import qualified Data.Vector                as V
 import qualified DataS.IntMap               as IM
 import           Repository.Model           (Agg, GroupBy (..), Ix,

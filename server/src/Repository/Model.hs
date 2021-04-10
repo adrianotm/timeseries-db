@@ -36,8 +36,7 @@ import           Data.Aeson.TH        as AS (defaultOptions, deriveFromJSON,
                                              deriveJSON, fieldLabelModifier,
                                              rejectUnknownFields)
 import           Data.Hashable        (Hashable)
-import qualified Data.HashMap.Strict  as HM
-import qualified Data.IntMap          as IM
+import qualified Data.IntMap.Strict   as IM
 import qualified Data.Map             as M
 import           Data.Maybe           (isJust, mapMaybe)
 import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
@@ -47,6 +46,8 @@ import qualified Data.Set             as S
 import           Data.Text            (Text)
 import           Data.Typeable        (Typeable)
 import qualified Data.Vector          as V (Vector)
+import qualified Data.Vector.Unboxed  as UV
+import qualified DataS.HashMap        as HM
 import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
                                               deriveElmDef)
 import           GHC.Generics         (Generic)
@@ -80,20 +81,23 @@ data GroupAggR = GroupAggR { _group :: Either Tag Timestamp, _result :: Val}
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
                 deriving(Show, Generic)
 
-data TS = TS { timestamp :: !Timestamp
-             , tag       :: !Tag
-             , value     :: !Val }
+data TS = TS { timestamp :: Timestamp
+             , tag       :: Tag
+             , value     :: Val }
     deriving (Show, Eq, Generic, NFData)
 
-data DTS = DTS { __timestamp :: Timestamp, __tag :: Tag }
-    deriving (Show, Generic)
+data TS' = TS' { timestamp' :: {-# UNPACK #-} !Timestamp
+               , tag'       :: {-# UNPACK #-} !Tag }
+    deriving (Show, Generic, NFData)
 
 type TimestampIndex = IM.IntMap [Ix]
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
-data TimeseriesDB = TimeseriesDB { _tIx   :: !TimestampIndex,
-                                   _sIx   :: !TagIndex, -- composite tag index
-                                   _data' :: !(V.Vector TS) } -- all data
+data TimeseriesDB = TimeseriesDB { _tIx    :: !TimestampIndex,
+                                   _sIx    :: !TagIndex, -- composite tag index
+                                   _data'  :: !(V.Vector TS'),
+                                   _dataV' :: !(UV.Vector Val)
+                                 } -- all data
                     deriving (Generic, NFData)
 
 data QueryModel = Q { gt      :: Maybe Timestamp
@@ -108,6 +112,8 @@ data QueryModel = Q { gt      :: Maybe Timestamp
                     , limit   :: Maybe Limit
                     }
         deriving (Generic, Show)
+
+makeLenses ''TimeseriesDB
 
 onlyAgg :: QueryModel -> (Bool, Agg)
 onlyAgg (Q Nothing Nothing Nothing Nothing Nothing Nothing (Just a) Nothing _ _) = (True, a)
@@ -128,9 +134,9 @@ instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => S
     putCopy = contain . safePut . HM.toList
 
 instance SafeCopy TimeseriesDB where
-    getCopy = contain $ (\a b c -> let db = TimeseriesDB a b c in force db)
-                         <$> safeGet <*> safeGet <*> safeGet
-    putCopy TimeseriesDB{..} = contain $ do safePut _tIx; safePut _sIx; safePut _data';
+    getCopy = contain $ (\a b c d -> let db = TimeseriesDB a b c d in force db)
+                         <$> safeGet <*> safeGet <*> safeGet <*> safeGet
+    putCopy TimeseriesDB{..} = contain $ do safePut _tIx; safePut _sIx; safePut _data'; safePut _dataV';
 
 instance Bounded Double where
     { minBound = -1/0; maxBound = 1/0 }
@@ -182,9 +188,8 @@ instance ToJSON GroupAggR where
     toEncoding (GroupAggR (Right ts) res) =
         pairs ("group" .= ts <> "result" .= res)
 
-makeLenses ''TimeseriesDB
 
-$(deriveJSON AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS)
+$(deriveJSON AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = init} ''TS')
 $(deriveJSON AS.defaultOptions{rejectUnknownFields = True} ''TS)
 $(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''QueryModel)
 $(deriveFromJSON AS.defaultOptions{rejectUnknownFields = True} ''GroupAggR)
@@ -196,14 +201,14 @@ deriveElmDef ELM.defaultOptions ''Sort
 deriveElmDef ELM.defaultOptions ''AggR
 deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''GroupAggR
 deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''TS
-deriveElmDef AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = drop 2} ''DTS
+deriveElmDef AS.defaultOptions{rejectUnknownFields = True, fieldLabelModifier = init} ''TS'
 deriveElmDef AS.defaultOptions{rejectUnknownFields = True} ''QueryModel
 deriveElmDef ELM.defaultOptions ''QueryR
 
 deriveSafeCopy 0 'base ''AggR
 deriveSafeCopy 0 'base ''GroupAggR
 deriveSafeCopy 0 'base ''QueryR
-deriveSafeCopy 0 'base ''DTS
+deriveSafeCopy 0 'base ''TS'
 deriveSafeCopy 0 'base ''TS
 deriveSafeCopy 0 'base ''Agg
 deriveSafeCopy 0 'base ''GroupBy

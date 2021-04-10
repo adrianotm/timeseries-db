@@ -23,17 +23,18 @@ import           Data.Functor              (($>), (<&>))
 import           Data.Maybe                (fromMaybe)
 import qualified Data.Vector               as V
 import qualified Data.Vector.Mutable       as VM
+import qualified Data.Vector.Unboxed       as UV
 import qualified DataS.HashMap             as HM
 import qualified DataS.IntMap              as IM
-import           Repository.Model          (DTS, QueryModel (..), QueryR, TS,
-                                            Tag, TimeseriesDB (..), Timestamp,
-                                            data')
+import           Repository.Model          (QueryModel (..), QueryR, TS (..),
+                                            TS' (..), Tag, TimeseriesDB (..),
+                                            Timestamp, data')
 import           Repository.Queries        (Error, query, sIxAppendTS,
                                             sIxDeleteTS, tIxAppendTS,
                                             tIxDeleteTS, unsafeIndexOf,
                                             vDeleteTS, vUpdateTS, validDelete,
                                             validInsert, validUpdate)
-import           Repository.Queries.Shared (InternalQ (InternalQ))
+import           Repository.Queries.Shared (InternalQ (InternalQ), simpleTS)
 import           System.IO.Unsafe          (unsafePerformIO)
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
@@ -43,7 +44,9 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                                  put (force $
                                       TimeseriesDB (tIxAppendTS ts _tIx startIx)
                                                    (sIxAppendTS ts _sIx startIx)
-                                                   (V.force $ _data' V.++ V.fromList ts)) $> []
+                                                   (_data' V.++ V.fromList (map simpleTS ts))
+                                                   (_dataV' UV.++ UV.fromList (map value ts))
+                                     ) $> []
                    errors -> return $ take 10 errors
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
@@ -51,15 +54,18 @@ updateTS ts = get >>= \db -> case validUpdate db ts of
                                []     -> put (force $ vUpdateTS ts db) $> []
                                errors -> return $ take 10 errors
 
-clearTS :: [DTS] -> Update TimeseriesDB [Error]
+clearTS :: [TS'] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
-                [] -> put (TimeseriesDB IM.empty HM.empty V.empty) $> []
+                [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
                 dtss -> get >>= \db@TimeseriesDB{..}
                           -> case validDelete db dtss of
                               []     -> put (force $
                                              TimeseriesDB (tIxDeleteTS dtss db)
                                                           (sIxDeleteTS dtss db)
-                                                          (V.force $ vDeleteTS dtss db)) $> []
+                                                          newData
+                                                          newDataV
+                                            ) $> []
+                                          where (newData, newDataV) = vDeleteTS dtss db
                               errors -> return $ take 10 errors
 
 filterTS :: QueryModel

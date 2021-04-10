@@ -23,7 +23,7 @@ import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..),
                                               CorsResourcePolicy, cors,
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
-import           Repository.Model            (DTS, QueryModel, QueryR (..), TS,
+import           Repository.Model            (QueryModel, QueryR (..), TS, TS',
                                               Tag, TimeseriesDB, Timestamp,
                                               illegalQM)
 import           Servant
@@ -36,7 +36,7 @@ type API = "timeseries" :> TimeseriesApi
 type TimeseriesApi =
    ReqBody '[JSON] [TS] :> Post '[JSON] ()
    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
-   :<|> ReqBody '[JSON] [DTS] :> Delete '[JSON] ()
+   :<|> ReqBody '[JSON] [TS'] :> Delete '[JSON] ()
    :<|> Delete '[JSON] ()
    :<|> "query" :> ReqBody '[JSON] QueryModel :> Post '[JSON] QueryR
 
@@ -55,7 +55,7 @@ updateData ts = ask >>= flip update' (UpdateTS ts)
                                   [] -> return ()
                                   errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
 
-deleteData :: [DTS] -> AcidReaderT ()
+deleteData :: [TS'] -> AcidReaderT ()
 deleteData dts = ask >>= flip update' (ClearTS dts)
                            >>= \case
                                   [] -> return ()

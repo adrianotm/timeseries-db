@@ -11,11 +11,14 @@ import qualified Data.Vector                as V
 import qualified DataS.HashMap              as HM
 import qualified DataS.IntMap               as IM
 
+import           Debug.Trace
 import           Repository.Model           (GroupBy (..), Ix, QueryModel (..),
                                              Tag, TimeseriesDB (..))
 import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
                                              noDataErr, qmToF, toCollAggR,
                                              toTSAggR, toTagAggR)
+
+debug = flip trace
 
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to = ask <&> \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
