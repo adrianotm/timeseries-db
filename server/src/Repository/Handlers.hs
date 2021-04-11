@@ -14,28 +14,28 @@ module Repository.Handlers
   , FilterTS(FilterTS))
   where
 
-import           Control.DeepSeq           (force)
-import           Control.Monad.Except      (forM_, runExceptT)
-import           Control.Monad.Reader      (ask, runReader, runReaderT)
-import           Control.Monad.State       (MonadState, evalState, get, put)
-import           Data.Acid                 (Query, Update, makeAcidic)
-import           Data.Functor              (($>), (<&>))
-import           Data.Maybe                (fromMaybe)
-import qualified Data.Vector               as V
-import qualified Data.Vector.Mutable       as VM
-import qualified Data.Vector.Unboxed       as UV
-import qualified DataS.HashMap             as HM
-import qualified DataS.IntMap              as IM
-import           Repository.Model          (QueryModel (..), QueryR, TS (..),
-                                            TS' (..), Tag, TimeseriesDB (..),
-                                            Timestamp, data')
-import           Repository.Queries        (Error, query, sIxAppendTS,
-                                            sIxDeleteTS, tIxAppendTS,
-                                            tIxDeleteTS, unsafeIndexOf,
-                                            vDeleteTS, vUpdateTS, validDelete,
-                                            validInsert, validUpdate)
-import           Repository.Queries.Shared (InternalQ (InternalQ), simpleTS)
-import           System.IO.Unsafe          (unsafePerformIO)
+import           Control.DeepSeq          (force)
+import           Control.Monad.Except     (forM_, runExceptT)
+import           Control.Monad.Reader     (ask, runReader, runReaderT)
+import           Control.Monad.State      (MonadState, evalState, get, put)
+import           Data.Acid                (Query, Update, makeAcidic)
+import           Data.Functor             (($>), (<&>))
+import           Data.Maybe               (fromMaybe)
+import qualified Data.Vector              as V
+import qualified Data.Vector.Mutable      as VM
+import qualified Data.Vector.Unboxed      as UV
+import qualified DataS.HashMap            as HM
+import qualified DataS.IntMap             as IM
+import           Repository.Model         (QueryModel (..), QueryR, TS (..),
+                                           TS' (..), Tag, TimeseriesDB (..),
+                                           Timestamp, data')
+import           Repository.Queries       (Error, query, sIxAppendTS,
+                                           sIxDeleteTS, tIxAppendTS,
+                                           tIxDeleteTS, unsafeIndexOf,
+                                           vDeleteTS, vUpdateTS, validDelete,
+                                           validInsert, validUpdate)
+import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
+import           System.IO.Unsafe         (unsafePerformIO)
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get

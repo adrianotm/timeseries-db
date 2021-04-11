@@ -7,10 +7,10 @@ import           Control.Exception.Base   (bracket)
 import           Api                      (app)
 import           Data.Acid.Local          (createCheckpointAndClose,
                                            openLocalState)
-import           Data.IntMap              as IM (empty)
 import           Data.Vector              as V (empty)
 import           Data.Vector.Unboxed      as UV (empty)
 import           DataS.HashMap            as HM (empty)
+import           DataS.IntMap             as IM (empty)
 import           Network.Wai.Handler.Warp (run)
 import           Repository.Model         (TimeseriesDB (TimeseriesDB))
 

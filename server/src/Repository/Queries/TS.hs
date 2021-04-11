@@ -12,7 +12,7 @@ import qualified DataS.IntMap               as IM
 import           Repository.Model           (Agg, GroupBy (..), Ix,
                                              QueryModel (..), Tag,
                                              TimeseriesDB (..), Timestamp)
-import           Repository.Queries.Shared  (AggRes, ExceptQ, InternalQ (..),
+import           Repository.Queries.Utils   (AggRes, ExceptQ, InternalQ (..),
                                              noDataErr, qmToF, toCollAggR,
                                              toTSAggR, toTagAggR)
 

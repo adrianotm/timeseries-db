@@ -31,7 +31,6 @@ import           Data.List                   as L (delete, foldl', map, reverse,
                                                    sort, (\\))
 import           Data.Maybe                  (fromMaybe, mapMaybe)
 import           Data.Monoid                 (Sum (Sum, getSum))
-import           Data.MonoTraversable        (Element, MonoFoldable, ofoldl')
 import           Data.Semigroup              (Max (Max, getMax),
                                               Min (Min, getMin))
 import qualified Data.Vector                 as V
@@ -44,12 +43,13 @@ import           Repository.Model            (Agg (..), Ix, QueryModel (..),
                                               TagIndex, TimeseriesDB (..),
                                               TimestampIndex, Val, data',
                                               dataV', onlyAgg)
-import           Repository.Queries.Shared   (AggRes, ExceptQ,
-                                              InternalQ (InternalQ, qm, tdb),
-                                              QueryType (TSQuery, TagQuery),
-                                              composeTS, qmToQT, toQRG)
 import           Repository.Queries.Tag      (queryTag)
 import           Repository.Queries.TS       (queryTS)
+import           Repository.Queries.Utils    (AggRes, ExceptQ,
+                                              InternalQ (InternalQ, qm, tdb),
+                                              QueryType (TSQuery, TagQuery),
+                                              composeTS, ofoldMap', qmToQT,
+                                              toQRG)
 
 type Error = String
 
@@ -118,9 +118,6 @@ queryF :: Monoid m => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m
 queryF qm = case qmToQT qm of
                 TSQuery  -> queryTS
                 TagQuery -> queryTag
-
-ofoldMap' :: (MonoFoldable mono, Monoid m) => (Element mono -> m) -> mono -> m
-ofoldMap' f = ofoldl' (\ acc a -> acc <> f a) mempty
 
 queryVec :: Agg -> ExceptQ QueryR
 queryVec agg = ask >>= \InternalQ{tdb=TimeseriesDB{..}} ->

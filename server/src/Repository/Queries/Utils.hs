@@ -1,9 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
-module Repository.Queries.Shared where
+module Repository.Queries.Utils where
 
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Reader (Reader)
 
+import           Data.MonoTraversable (Element, MonoFoldable, ofoldl')
 import qualified Data.Vector          as V
 import qualified Data.Vector.Unboxed  as UV
 import qualified DataS.IntMap         as IM
@@ -67,3 +68,6 @@ qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery
 qmToQT Q {groupBy = (Just GByTag)} = TagQuery
 qmToQT _                           = TSQuery
+
+ofoldMap' :: (MonoFoldable mono, Monoid m) => (Element mono -> m) -> mono -> m
+ofoldMap' f = ofoldl' (\ acc a -> acc <> f a) mempty

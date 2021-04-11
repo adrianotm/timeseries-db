@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c24aa02f6c74db8a8e7446b464ca224e3bc7c594f7df3b6cc4c3e74f692645d3
+-- hash: 7750c344766bc5a81571c46f8a95ffe5dd4be244396a236d55b6c7fd4a3ed58f
 
 name:           diplomska
 version:        0.1.0.0
@@ -34,9 +34,9 @@ library
       Repository.Handlers
       Repository.Model
       Repository.Queries
-      Repository.Queries.Shared
       Repository.Queries.Tag
       Repository.Queries.TS
+      Repository.Queries.Utils
   other-modules:
       Paths_diplomska
   hs-source-dirs:
