@@ -84,7 +84,7 @@ corsPolicy = cors (const $ Just policy)
         policy = simpleCorsResourcePolicy
           {
               corsMethods = [methodGet, methodPost, methodPut, methodDelete],
-              corsOrigins = Just (["http://localhost:8000"], False),
+              corsOrigins = Nothing,
               corsRequestHeaders = [ "Content-Type" ]
           }
 

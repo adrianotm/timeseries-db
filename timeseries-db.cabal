@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 196d2cad6b54f78f3ab791fcd973d6733211275c8917af4ddb5ea25d0aee6529
+-- hash: 000856f79cf7bf0b3ac64af204480ea23241ad8c10a771c34d00277f654ce4ec
 
 name:           timeseries-db
 version:        0.1.0.0
@@ -43,7 +43,6 @@ library
   build-depends:
       acid-state
     , aeson
-    , array
     , base >=4.7 && <5
     , bytestring
     , containers
@@ -79,7 +78,6 @@ executable server
   build-depends:
       acid-state
     , aeson
-    , array
     , base
     , bytestring
     , containers

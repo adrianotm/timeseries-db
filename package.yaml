@@ -28,7 +28,6 @@ dependencies:
   - time
   - bytestring
   - mtl
-  - array
   - acid-state
   - safecopy
   - lens
