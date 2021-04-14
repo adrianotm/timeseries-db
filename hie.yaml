@@ -1,10 +1,10 @@
 cradle:
   stack:
     - path: "./server/src"
-      component: "diplomska:lib"
+      component: "timeseries-db:lib"
 
     - path: "./server/Main.hs"
-      component: "diplomska:exe:server"
+      component: "timeseries-db:exe:server"
 
-    - path: "./server/Paths_diplomska.hs"
-      component: "diplomska:exe:server"
+    - path: "./server/Paths_timeseries_db.hs"
+      component: "timeseries-db:exe:server"

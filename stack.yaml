@@ -29,6 +29,8 @@ resolver: lts-17.5
 #   subdirs:
 #   - auto-update
 #   - wai
+allow-different-user: true
+
 ghc-options:
   # All packages
   "$everything": -O2

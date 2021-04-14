@@ -1,10 +1,8 @@
-name: diplomska
+name: timeseries-db
 version: 0.1.0.0
-github: "githubuser/diplomska"
+github: "adrianotm/timeseries-db"
 license: BSD3
-author: "Author name here"
-maintainer: "example@example.com"
-copyright: "2021 Author name here"
+author: "Adrian Cholak"
 
 extra-source-files:
   - README.md
@@ -16,7 +14,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description: Please see the README on GitHub at <https://github.com/githubuser/diplomska#readme>
+description: Please see the README on GitHub at <https://github.com/adrianotm/timeseries-db#readme>
 
 dependencies:
   - base >= 4.7 && < 5
@@ -28,15 +26,7 @@ dependencies:
   - warp
   - text
   - time
-  - base-compat-batteries
-  - attoparsec
   - bytestring
-  - string-conversions
-  - lucid
-  - http-media
-  - directory
-  - blaze-markup
-  - blaze-html
   - mtl
   - array
   - acid-state
@@ -52,7 +42,6 @@ dependencies:
   - elm-bridge
   - http-types
   - deepseq
-  - parallel
   - mono-traversable
 
 library:
@@ -74,4 +63,4 @@ executables:
       - -O2
     dependencies:
       - base
-      - diplomska
+      - timeseries-db

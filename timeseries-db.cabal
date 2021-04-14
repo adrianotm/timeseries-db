@@ -4,16 +4,15 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7750c344766bc5a81571c46f8a95ffe5dd4be244396a236d55b6c7fd4a3ed58f
+-- hash: 196d2cad6b54f78f3ab791fcd973d6733211275c8917af4ddb5ea25d0aee6529
 
-name:           diplomska
+name:           timeseries-db
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/diplomska#readme>
-homepage:       https://github.com/githubuser/diplomska#readme
-bug-reports:    https://github.com/githubuser/diplomska/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2021 Author name here
+description:    Please see the README on GitHub at <https://github.com/adrianotm/timeseries-db#readme>
+homepage:       https://github.com/adrianotm/timeseries-db#readme
+bug-reports:    https://github.com/adrianotm/timeseries-db/issues
+author:         Adrian Cholak
+maintainer:     Adrian Cholak
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -22,7 +21,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/diplomska
+  location: https://github.com/adrianotm/timeseries-db
 
 library
   exposed-modules:
@@ -38,37 +37,28 @@ library
       Repository.Queries.TS
       Repository.Queries.Utils
   other-modules:
-      Paths_diplomska
+      Paths_timeseries_db
   hs-source-dirs:
       server/src
   build-depends:
       acid-state
     , aeson
     , array
-    , attoparsec
     , base >=4.7 && <5
-    , base-compat-batteries
-    , blaze-html
-    , blaze-markup
     , bytestring
     , containers
     , deepseq
-    , directory
     , elm-bridge
     , hashable
-    , http-media
     , http-types
     , lens
-    , lucid
     , mono-traversable
     , mtl
-    , parallel
     , safecopy
     , scientific
     , servant
     , servant-elm
     , servant-server
-    , string-conversions
     , text
     , time
     , transformers
@@ -82,7 +72,7 @@ library
 executable server
   main-is: Main.hs
   other-modules:
-      Paths_diplomska
+      Paths_timeseries_db
   hs-source-dirs:
       server
   ghc-options: -threaded "-with-rtsopts=-xn -I0" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -Wall -O2
@@ -90,33 +80,24 @@ executable server
       acid-state
     , aeson
     , array
-    , attoparsec
     , base
-    , base-compat-batteries
-    , blaze-html
-    , blaze-markup
     , bytestring
     , containers
     , deepseq
-    , diplomska
-    , directory
     , elm-bridge
     , hashable
-    , http-media
     , http-types
     , lens
-    , lucid
     , mono-traversable
     , mtl
-    , parallel
     , safecopy
     , scientific
     , servant
     , servant-elm
     , servant-server
-    , string-conversions
     , text
     , time
+    , timeseries-db
     , transformers
     , unordered-containers
     , vector
