@@ -1,7 +1,7 @@
 # Time series database
 A time series database written in `Haskell` that uses `servant` and `acid-state` to persist and serve data. The client is in `elm` and it can be used to explore the features of the database.
 
-This project was the topic of my bachelor thesis as to research a methodology for implementing a time series database using functional programming. The database is in RAM memory and it uses a specific data schema with appropriate indexes to store and query the data.
+This project was the topic of my bachelor thesis as to research a methodology for implementing a time series database using functional programming. The database is in RAM memory and it uses a specific data schema with appropriate indexes to efficiently store and query the data.
 
 ## Table of contents
 <!--ts-->
