@@ -7,11 +7,13 @@ This project was the topic of my bachelor thesis as to research a methodology fo
 ![Screenshot from 2021-04-15 12-58-17](https://user-images.githubusercontent.com/39745825/114858844-47f3cc00-9dea-11eb-9ab1-d6dc9889eeeb.png)
 
 ## Setup
+#### Docker
 In order to run the database and the client, the easiest way is by using `docker-compose`:
 ```
 docker-compose up --build
 ```
-Or manually:
+The client is on 8080 port and the database listens on 8081.
+#### Manual
 * Database (`stack` is required):
   ```
   make setup_server   # stack setup
@@ -21,7 +23,7 @@ Or manually:
   ```
   make run_client   # elm reactor
   ```
-  or create a static `index.html` file in client/ directory
+  or create a static `client/index.html` file
   ```
   make create_static_html
   ```
