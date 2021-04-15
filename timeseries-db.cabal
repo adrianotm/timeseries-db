@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 000856f79cf7bf0b3ac64af204480ea23241ad8c10a771c34d00277f654ce4ec
+-- hash: bff9d8d837eca0da7a3b7a355db3f3aa64edb69c19e8895fb8fb2629b9c86dcc
 
 name:           timeseries-db
 version:        0.1.0.0
@@ -13,8 +13,6 @@ homepage:       https://github.com/adrianotm/timeseries-db#readme
 bug-reports:    https://github.com/adrianotm/timeseries-db/issues
 author:         Adrian Cholak
 maintainer:     Adrian Cholak
-license:        BSD3
-license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md

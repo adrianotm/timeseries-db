@@ -6,10 +6,10 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
+
 module Api where
 
 import           Control.Exception.Base      (bracket)
-
 import           Control.Monad.Reader        (MonadReader (ask),
                                               ReaderT (runReaderT))
 import           Data.Acid                   as A (AcidState)
@@ -19,8 +19,7 @@ import qualified Data.ByteString.Lazy.Char8  as C
 import           Network.HTTP.Types.Method   (methodDelete, methodGet,
                                               methodPost, methodPut)
 import           Network.Wai                 (Application, Middleware)
-import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..),
-                                              CorsResourcePolicy, cors,
+import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors,
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
 import           Repository.Model            (QueryModel, QueryR (..), TS, TS',
@@ -29,64 +28,73 @@ import           Repository.Model            (QueryModel, QueryR (..), TS, TS',
 import           Servant
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler
+
 type TSServer api = ServerT api AcidReaderT
 
 type API = "timeseries" :> TimeseriesApi
 
 type TimeseriesApi =
-   ReqBody '[JSON] [TS] :> Post '[JSON] ()
-   :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
-   :<|> ReqBody '[JSON] [TS'] :> Delete '[JSON] ()
-   :<|> Delete '[JSON] ()
-   :<|> "query" :> ReqBody '[JSON] QueryModel :> Post '[JSON] QueryR
+  ReqBody '[JSON] [TS] :> Post '[JSON] ()
+    :<|> ReqBody '[JSON] [TS] :> Put '[JSON] ()
+    :<|> ReqBody '[JSON] [TS'] :> Delete '[JSON] ()
+    :<|> Delete '[JSON] ()
+    :<|> "query" :> ReqBody '[JSON] QueryModel :> Post '[JSON] QueryR
 
 api :: Proxy API
 api = Proxy
 
 insertData :: [TS] -> AcidReaderT ()
-insertData ts = ask >>= flip update' (InsertTS ts)
-                           >>= \case
-                                  [] -> return ()
-                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
+insertData ts =
+  ask >>= flip update' (InsertTS ts)
+    >>= \case
+      [] -> return ()
+      errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
 updateData :: [TS] -> AcidReaderT ()
-updateData ts = ask >>= flip update' (UpdateTS ts)
-                           >>= \case
-                                  [] -> return ()
-                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
+updateData ts =
+  ask >>= flip update' (UpdateTS ts)
+    >>= \case
+      [] -> return ()
+      errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
 deleteData :: [TS'] -> AcidReaderT ()
-deleteData dts = ask >>= flip update' (ClearTS dts)
-                           >>= \case
-                                  [] -> return ()
-                                  errors -> throwError $ err400 { errBody = C.pack $ unlines errors}
+deleteData dts =
+  ask >>= flip update' (ClearTS dts)
+    >>= \case
+      [] -> return ()
+      errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
-queryData :: QueryModel
-           -> AcidReaderT QueryR
-queryData qm  | fst $ illegalQM qm = throwError $ err400 { errBody = C.pack $ snd $ illegalQM qm }
-              | otherwise = ask >>= flip query' (FilterTS qm) >>= either
-                                                                  (\m -> throwError $ err400 { errBody = C.pack m })
-                                                                  return
+queryData ::
+  QueryModel ->
+  AcidReaderT QueryR
+queryData qm
+  | fst $ illegalQM qm = throwError $ err400 {errBody = C.pack $ snd $ illegalQM qm}
+  | otherwise =
+    ask >>= flip query' (FilterTS qm)
+      >>= either
+        (\m -> throwError $ err400 {errBody = C.pack m})
+        return
 
 tsHandlers :: TSServer TimeseriesApi
-tsHandlers = insertData
-        :<|> updateData
-        :<|> deleteData
-        :<|> deleteData []
-        :<|> queryData
+tsHandlers =
+  insertData
+    :<|> updateData
+    :<|> deleteData
+    :<|> deleteData []
+    :<|> queryData
 
 serverT :: TSServer API
 serverT = tsHandlers
 
 corsPolicy :: Middleware
 corsPolicy = cors (const $ Just policy)
-    where
-        policy = simpleCorsResourcePolicy
-          {
-              corsMethods = [methodGet, methodPost, methodPut, methodDelete],
-              corsOrigins = Nothing,
-              corsRequestHeaders = [ "Content-Type" ]
-          }
+  where
+    policy =
+      simpleCorsResourcePolicy
+        { corsMethods = [methodGet, methodPost, methodPut, methodDelete],
+          corsOrigins = Nothing,
+          corsRequestHeaders = ["Content-Type"]
+        }
 
 app :: AcidState TimeseriesDB -> Application
 app db = corsPolicy $ serve api $ hoistServer api (`runReaderT` db) serverT
