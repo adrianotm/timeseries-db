@@ -1,5 +1,5 @@
 # Time series database
-A time series database written in `Haskell` that uses `servant` and `acid-state` to persist and serve data. The client is in `elm` and it can be used to explore the features of the database.
+A NoSQL time series database written in `Haskell` that uses `servant` and `acid-state` to persist and serve data. The client is in `elm` and it can be used to explore the features of the database.
 
 This project was the topic of my bachelor thesis as to research a methodology for implementing a time series database using functional programming. The database is in RAM memory and it uses a specific data schema with appropriate indexes to efficiently store and query the data.
 
@@ -9,6 +9,8 @@ This project was the topic of my bachelor thesis as to research a methodology fo
    * [Setup](#setup)
      * [Docker](#docker)
      * [Manual](#manual)
+   * [Key Concepts](#key-concepts)
+     * [Data Schema](#data-schema) 
    * [Usage](#usage)
      * [Insert data](#insert-data)
      * [Update data](#update-data)
@@ -46,6 +48,20 @@ The client is available at `http://localhost:8080`.
   make create_static_html
   ```
   
+## Key Concepts
+
+### Data Schema
+
+The data schema that this database uses:
+```haskell
+{
+  timestamp :: Int      -- UNIX timestamp
+  tag       :: String   -- Metadata
+  value     :: Double   -- Measurement
+}
+```
+The `timestamp` and `tag` fields are **indexed**.
+
 ## Usage
 The database listens on port 8081.
 
@@ -94,16 +110,16 @@ Deleting data that does not exist in the database results in an error.
 Route **POST /timeseries/query** - A query should be passed in the body of the request. Query parameters:
 ```haskell
 {
-  gt :: Int,    -- timestamp greater then
-  ge :: Int,    -- timestamp greater or equal then (mutually exclusive with 'gt')
-  lt :: Int,    -- timestamp less then
-  le :: Int,    -- timestamp less or equal then (mutually exclusive with 'lt')
-  tsEq :: Int,    -- timestamp equal (mutually exclusive with any other timestamp parameter)
-  tagEq :: String,    -- tag equal
+  gt      :: Int,    -- timestamp greater then
+  ge      :: Int,    -- timestamp greater or equal then (mutually exclusive with 'gt')
+  lt      :: Int,    -- timestamp less then
+  le      :: Int,    -- timestamp less or equal then (mutually exclusive with 'lt')
+  tsEq    :: Int,    -- timestamp equal (mutually exclusive with any other timestamp parameter)
+  tagEq   :: String, -- tag equal
   aggFunc :: "count" | "avg" | "sum" | "min" | "max",   -- aggregate data
   groupBy :: "tag" | "timestamp",   -- group by tag or timestamp, in combination with 'aggFunc'
-  sort :: "asc" | "desc",   -- sort by timestamp ascending or descending
-  limit :: Int    -- limit entries in the result
+  sort    :: "asc" | "desc",   -- sort by timestamp ascending or descending
+  limit   :: Int    -- limit entries in the result
 }
 ```
 
