@@ -107,7 +107,7 @@ Route **DELETE /timeseries** - If the body of the request is empty, the whole da
 Deleting data that does not exist in the database results in an error.
 
 ### Query data
-Route **POST /timeseries/query** - A query should be passed in the body of the request. Query parameters:
+Route **POST /timeseries/query** - A query as a JSON should be passed in the body of the request. Query parameters:
 ```haskell
 {
   gt      :: Int,    -- timestamp greater then
