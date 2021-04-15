@@ -5,10 +5,10 @@ import           Repository.Model
 
 getTag :: Int -> Tag
 getTag i
-  | even i = "drop"
-  | i `mod` 3 == 0  = "adrian"
-  | i `mod` 5 == 0  = "cholak"
-  | otherwise  = "test"
+  | even i = "Munich"
+  | i `mod` 3 == 0  = "Skopje"
+  | i `mod` 5 == 0  = "London"
+  | otherwise  = "Athens"
 
 getVal :: Int -> Val
 getVal i
@@ -24,8 +24,8 @@ getTs i
   | i `mod` 5 == 0  = 3
   | otherwise  = 1
 
-num = 200000
-interval = [0..num]
+num = 16184811230000
+interval = [16184810930000..num]
 
 generateTS :: [TS]
 generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- interval]

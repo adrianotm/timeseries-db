@@ -5,7 +5,6 @@ WORKDIR /app
 COPY stack.yaml /app
 COPY package.yaml /app
 RUN stack setup && \
-  stack exec -- ghc --version && \
   stack build --only-dependencies
 
 COPY . /app
