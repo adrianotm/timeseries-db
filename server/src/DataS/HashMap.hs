@@ -1,26 +1,27 @@
 module DataS.HashMap
-   ( module DataS.HashMap
-   , M.HashMap
-   , M.mapMaybe
-   , M.filter
-   , M.unionWith
-   , M.insertWith
-   , M.insert
-   , M.differenceWith
-   , M.foldlWithKey'
-   , M.union
-   , M.fromList
-   , M.fromListWith
-   , M.singleton
-   , M.empty
-   , M.foldl'
-   , M.lookup
-   , M.keys
-   , M.update
-   , M.toList
-   , M.member
-   , (M.!)
-   ) where
+  ( module DataS.HashMap,
+    M.HashMap,
+    M.mapMaybe,
+    M.filter,
+    M.unionWith,
+    M.insertWith,
+    M.insert,
+    M.differenceWith,
+    M.foldlWithKey',
+    M.union,
+    M.fromList,
+    M.fromListWith,
+    M.singleton,
+    M.empty,
+    M.foldl',
+    M.lookup,
+    M.keys,
+    M.update,
+    M.toList,
+    M.member,
+    (M.!),
+  )
+where
 
 import           Data.HashMap.Strict as M (HashMap, differenceWith, empty,
                                            filter, foldl', foldlWithKey',

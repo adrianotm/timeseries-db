@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 {-# LANGUAGE BlockArguments    #-}
 {-# LANGUAGE DeriveAnyClass    #-}
 {-# LANGUAGE DeriveGeneric     #-}
@@ -7,12 +6,15 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
+
 module Repository.Handlers
-  ( InsertTS(InsertTS)
-  , UpdateTS(UpdateTS)
-  , ClearTS(ClearTS)
-  , FilterTS(FilterTS))
-  where
+  ( InsertTS (InsertTS),
+    UpdateTS (UpdateTS),
+    ClearTS (ClearTS),
+    FilterTS (FilterTS),
+  )
+where
 
 import           Control.DeepSeq          (force)
 import           Control.Monad.Except     (forM_, runExceptT)
@@ -38,39 +40,52 @@ import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
 import           System.IO.Unsafe         (unsafePerformIO)
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
-insertTS ts = do db@TimeseriesDB{..} <- get
-                 case validInsert _sIx ts of
-                   [] -> let startIx = V.length _data' in
-                                 put (force $
-                                      TimeseriesDB (tIxAppendTS ts _tIx startIx)
-                                                   (sIxAppendTS ts _sIx startIx)
-                                                   (_data' V.++ V.fromList (map simpleTS ts))
-                                                   (_dataV' UV.++ UV.fromList (map value ts))
-                                     ) $> []
-                   errors -> return $ take 10 errors
+insertTS ts = do
+  db@TimeseriesDB {..} <- get
+  case validInsert _sIx ts of
+    [] ->
+      let startIx = V.length _data'
+       in put
+            ( force $
+                TimeseriesDB
+                  (tIxAppendTS ts _tIx startIx)
+                  (sIxAppendTS ts _sIx startIx)
+                  (_data' V.++ V.fromList (map simpleTS ts))
+                  (_dataV' UV.++ UV.fromList (map value ts))
+            )
+            $> []
+    errors -> return $ take 10 errors
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
-updateTS ts = get >>= \db@TimeseriesDB{..}
-                          -> case validModify _sIx $ map simpleTS ts of
-                               []     -> put (force $ vUpdateTS ts db) $> []
-                               errors -> return $ take 10 errors
+updateTS ts =
+  get >>= \db@TimeseriesDB {..} ->
+    case validModify _sIx $ map simpleTS ts of
+      []     -> put (force $ vUpdateTS ts db) $> []
+      errors -> return $ take 10 errors
 
 clearTS :: [TS'] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
-                [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
-                dtss -> get >>= \db@TimeseriesDB{..}
-                          -> case validModify _sIx dtss of
-                              []     -> put (force $
-                                             TimeseriesDB (tIxDeleteTS dtss db)
-                                                          (sIxDeleteTS dtss db)
-                                                          newData
-                                                          newDataV
-                                            ) $> []
-                                          where (newData, newDataV) = vDeleteTS dtss db
-                              errors -> return $ take 10 errors
+  [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
+  dtss ->
+    get >>= \db@TimeseriesDB {..} ->
+      case validModify _sIx dtss of
+        [] ->
+          put
+            ( force $
+                TimeseriesDB
+                  (tIxDeleteTS dtss db)
+                  (sIxDeleteTS dtss db)
+                  newData
+                  newDataV
+            )
+            $> []
+          where
+            (newData, newDataV) = vDeleteTS dtss db
+        errors -> return $ take 10 errors
 
-filterTS :: QueryModel
-         -> Query TimeseriesDB (Either Error QueryR)
-filterTS qm@Q{..} = ask <&> runReader (runExceptT query) . InternalQ qm
+filterTS ::
+  QueryModel ->
+  Query TimeseriesDB (Either Error QueryR)
+filterTS qm@Q {..} = ask <&> runReader (runExceptT query) . InternalQ qm
 
 makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS]
