@@ -57,7 +57,7 @@ The data schema that this database uses:
 {
   timestamp :: Int,      -- UNIX timestamp
   tag       :: String,   -- Metadata
-  value     :: Double    -- Measurement
+  value     :: Double    -- Quantity
 }
 ```
 The `timestamp` and `tag` fields are **indexed** and every combination of them must be <em>unique</em>.
