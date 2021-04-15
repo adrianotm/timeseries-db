@@ -3,10 +3,25 @@ A time series database written in `Haskell` that uses `servant` and `acid-state`
 
 This project was the topic of my bachelor thesis as to research a methodology for implementing a time series database using functional programming. The database is in RAM memory and it uses a specific data schema with appropriate indexes to store and query the data.
 
+## Table of contents
+<!--ts-->
+   * [Screenshots](#screenshots)
+   * [Setup](#setup)
+     * [Docker](#docker)
+     * [Manual](#manual)
+   * [Usage](#usage)
+     * [Insert data](#insert-data)
+     * [Update data](#update-data)
+     * [Delete data](#delete-data)
+     * [Query data](#query-data)
+   * [Inspiration](#inspiration)
+<!--te-->
+
 ## Screenshots
 ![Screenshot from 2021-04-15 12-58-17](https://user-images.githubusercontent.com/39745825/114858844-47f3cc00-9dea-11eb-9ab1-d6dc9889eeeb.png)
 
 ## Setup
+
 #### Docker
 In order to run the database and the client, the easiest way is by using `docker-compose`:
 ```
@@ -34,7 +49,7 @@ The client is available at `http://localhost:8080`.
 ## Usage
 The database listens on port 8081.
 
-### Insert new data
+### Insert data
 Route **POST /timeseries** - The new data should be in the body of the request. Example:
 ```
 [
@@ -73,7 +88,7 @@ Route **DELETE /timeseries** - If the body of the request is empty, the whole da
   ...
 ]
 ```
-Deleting data that does not exist results in an error.
+Deleting data that does not exist in the database results in an error.
 
 ### Query data
 Route **POST /timeseries/query** - A query should be passed in the body of the request. Query parameters:
