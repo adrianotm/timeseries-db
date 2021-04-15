@@ -55,12 +55,12 @@ The client is available at `http://localhost:8080`.
 The data schema that this database uses:
 ```haskell
 {
-  timestamp :: Int      -- UNIX timestamp
-  tag       :: String   -- Metadata
-  value     :: Double   -- Measurement
+  timestamp :: Int,      -- UNIX timestamp
+  tag       :: String,   -- Metadata
+  value     :: Double    -- Measurement
 }
 ```
-The `timestamp` and `tag` fields are **indexed**.
+The `timestamp` and `tag` fields are **indexed** and every combination of them must be <em>unique</em>.
 
 ## Usage
 The database listens on port 8081.
