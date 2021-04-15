@@ -1,7 +1,6 @@
 name: timeseries-db
 version: 0.1.0.0
 github: "adrianotm/timeseries-db"
-license: BSD3
 author: "Adrian Cholak"
 
 extra-source-files:
