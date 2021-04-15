@@ -28,6 +28,7 @@ toCollR :: [TS] -> QueryR
 toCollR = QR . Left
 {-# INLINE toCollR #-}
 
-handleAgg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
-handleAgg err = maybe (throwError err) (return . toQR)
-{-# INLINE handleAgg #-}
+-- Throw an error if the average failed
+handleAvg :: Monad m => String -> Maybe Val  -> ExceptT String m QueryR
+handleAvg err = maybe (throwError err) (return . toQR)
+{-# INLINE handleAvg #-}

@@ -32,14 +32,14 @@ import           Repository.Model         (QueryModel (..), QueryR, TS (..),
 import           Repository.Queries       (Error, query, sIxAppendTS,
                                            sIxDeleteTS, tIxAppendTS,
                                            tIxDeleteTS, unsafeIndexOf,
-                                           vDeleteTS, vUpdateTS, validDelete,
-                                           validInsert, validUpdate)
+                                           vDeleteTS, vUpdateTS, validInsert,
+                                           validModify)
 import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
 import           System.IO.Unsafe         (unsafePerformIO)
 
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do db@TimeseriesDB{..} <- get
-                 case validInsert db ts of
+                 case validInsert _sIx ts of
                    [] -> let startIx = V.length _data' in
                                  put (force $
                                       TimeseriesDB (tIxAppendTS ts _tIx startIx)
@@ -50,7 +50,8 @@ insertTS ts = do db@TimeseriesDB{..} <- get
                    errors -> return $ take 10 errors
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
-updateTS ts = get >>= \db -> case validUpdate db ts of
+updateTS ts = get >>= \db@TimeseriesDB{..}
+                          -> case validModify _sIx $ map simpleTS ts of
                                []     -> put (force $ vUpdateTS ts db) $> []
                                errors -> return $ take 10 errors
 
@@ -58,7 +59,7 @@ clearTS :: [TS'] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
                 [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
                 dtss -> get >>= \db@TimeseriesDB{..}
-                          -> case validDelete db dtss of
+                          -> case validModify _sIx dtss of
                               []     -> put (force $
                                              TimeseriesDB (tIxDeleteTS dtss db)
                                                           (sIxDeleteTS dtss db)

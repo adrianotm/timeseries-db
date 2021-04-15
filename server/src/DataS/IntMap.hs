@@ -58,24 +58,28 @@ getLT re k im =
        | otherwise -> Nil
      Nil -> Nil
 
+-- FoldMap in a descending order
 foldMapDesc :: Monoid m => (a -> m) -> IM.IntMap a -> m
 foldMapDesc f = go
     where go Nil           = mempty
           go (Tip _ v)     = f v
           go (Bin _ m l r) = go r `mappend` go l
 
+-- FoldMapWithKey in a descending order
 foldMapWithKeyDesc :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKeyDesc f = go
     where go Nil           = mempty
           go (Tip kx x)    = f kx x
           go (Bin _ m l r) = go r `mappend` go l
 
+-- Choose a foldMap depending on the aggregation and the sort
 foldMap :: Monoid m => Maybe Agg -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
 foldMap Nothing (Just Desc) = foldMapDesc
 foldMap Nothing _           = Data.Foldable.foldMap
 foldMap (Just _) _          = Data.Foldable.foldMap'
 {-# INLINE foldMap #-}
 
+-- Choose a foldMap depending on the sort
 foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey (Just Desc) = foldMapWithKeyDesc
 foldMapWithKey _           = IM.foldMapWithKey

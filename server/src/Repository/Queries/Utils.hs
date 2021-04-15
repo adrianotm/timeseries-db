@@ -16,6 +16,7 @@ import           Repository.Model     (GroupAggR (..), GroupBy (GByTag), Ix,
 simpleTS :: TS -> TS'
 simpleTS (TS time tag val) = TS' time tag
 
+-- Filter the Timestamp index depending on the query
 qmToF :: QueryModel -> (IM.IntMap a -> IM.IntMap a)
 qmToF Q {gt = (Just gt), lt = (Just lt)} = IM.getGT False gt . IM.getLT False lt
 qmToF Q {gt = (Just gt), le = (Just le)} = IM.getGT False gt . IM.getLT True le
@@ -43,8 +44,9 @@ noDataErr :: Either Tag Timestamp -> String
 noDataErr (Left tg)  = "No data for tag " ++ show tg ++ "."
 noDataErr (Right ts) = "No data for timestamp " ++ show ts ++ "."
 
-composeTS :: TimeseriesDB -> Ix -> TS
-composeTS TimeseriesDB{..} ix = TS timestamp' tag' val
+-- Create a TS by combining the two vectors
+makeTS :: TimeseriesDB -> Ix -> TS
+makeTS TimeseriesDB{..} ix = TS timestamp' tag' val
     where TS'{..} = V.unsafeIndex _data' ix
           val = UV.unsafeIndex _dataV' ix
 
@@ -60,10 +62,12 @@ toTSAggR :: [(Timestamp, v)] -> AggRes a v
 toTSAggR = Right . Right
 {-# INLINE toTSAggR #-}
 
+-- Transform grouped aggregates to QueryR
 toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either [(Tag, v)] [(Timestamp, v)] -> QueryR
 toQRG f limit m = QR $ Right $ Left $ maybe id take limit $ either (trans Left) (trans Right) m
     where trans keyF l = map (\(k,v) -> GroupAggR (keyF k) (f v)) l
 
+-- Decide whether to use the Tag index or the Timestamp index
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery
 qmToQT Q {groupBy = (Just GByTag)} = TagQuery

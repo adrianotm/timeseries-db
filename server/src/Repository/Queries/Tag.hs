@@ -34,6 +34,7 @@ groupTag to = ask >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                                          $ HM.foldMapWithKey (\tag ix -> [(tag, to ix)])
                                          $ HM.mapMaybe (IM.lookup ts) _sIx
 
+-- Query by the tag index
 queryTag :: Monoid m => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag get to = ask >>= \InternalQ{qm=qm@Q{..},tdb=TimeseriesDB{..}}
                               -> case tagEq of
