@@ -103,7 +103,7 @@ Route **POST /timeseries/query** - A query should be passed in the body of the r
   aggFunc :: "count" | "avg" | "sum" | "min" | "max",   -- aggregate data
   groupBy :: "tag" | "timestamp",   -- group by tag or timestamp, in combination with 'aggFunc'
   sort :: "asc" | "desc",   -- sort by timestamp ascending or descending
-  limit :: int    -- limit entries in the result
+  limit :: Int    -- limit entries in the result
 }
 ```
 
