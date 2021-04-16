@@ -105,10 +105,10 @@ type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
 data TimeseriesDB = TimeseriesDB
   { _tIx    :: !TimestampIndex,
-    _sIx    :: !TagIndex, -- composite tag index
+    _sIx    :: !TagIndex,
     _data'  :: !(V.Vector TS'),
     _dataV' :: !(UV.Vector Val)
-  } -- all data
+  }
   deriving (Generic, NFData)
 
 data QueryModel = Q

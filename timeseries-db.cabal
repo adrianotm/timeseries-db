@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bff9d8d837eca0da7a3b7a355db3f3aa64edb69c19e8895fb8fb2629b9c86dcc
+-- hash: f566ad4a24700eb9773c1f0a2de754ae1cfdf3b9ebe074c823e2d4b9039247f8
 
 name:           timeseries-db
 version:        0.1.0.0
@@ -72,7 +72,7 @@ executable server
       Paths_timeseries_db
   hs-source-dirs:
       server
-  ghc-options: -threaded "-with-rtsopts=-xn -I0" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -Wall -O2
+  ghc-options: -threaded "-with-rtsopts=-N -qg -xn -I0 -s" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -Wall -O2
   build-depends:
       acid-state
     , aeson

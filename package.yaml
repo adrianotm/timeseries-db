@@ -51,7 +51,7 @@ executables:
     source-dirs: server
     ghc-options:
       - -threaded
-      - '"-with-rtsopts=-xn -I0"' #-O
+      - '"-with-rtsopts=-N -qg -xn -I0 -s"' #-O
       - -fexcess-precision
       - -funfolding-use-threshold=16
       - -optc-O3
