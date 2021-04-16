@@ -87,9 +87,9 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
   deriving (Show, Generic)
 
 data TS = TS
-  { timestamp :: Timestamp,
-    tag       :: Tag,
-    value     :: Val
+  { timestamp :: !Timestamp,
+    tag       :: !Tag,
+    value     :: !Val
   }
   deriving (Show, Eq, Generic, NFData)
 
@@ -104,10 +104,10 @@ type TimestampIndex = IM.IntMap [Ix]
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
 data TimeseriesDB = TimeseriesDB
-  { _tIx    :: !TimestampIndex,
-    _sIx    :: !TagIndex,
-    _data'  :: !(V.Vector TS'),
-    _dataV' :: !(UV.Vector Val)
+  { _tIx    :: TimestampIndex,
+    _sIx    :: TagIndex,
+    _data'  :: V.Vector TS',
+    _dataV' :: UV.Vector Val
   }
   deriving (Generic, NFData)
 
