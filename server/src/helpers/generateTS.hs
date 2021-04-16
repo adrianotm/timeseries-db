@@ -25,9 +25,9 @@ getTs i
   | i `mod` 5 == 0 = 3
   | otherwise = 1
 
-num = 16184811230000
+num = 16184810930000
 
-interval = [16184810930000 .. num]
+interval = [num..num+2000000]
 
 generateTS :: [TS]
 generateTS = [TS (0 + i) (getTag i) (getVal i) | i <- interval]
