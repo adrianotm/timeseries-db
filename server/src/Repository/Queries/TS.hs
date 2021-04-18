@@ -33,7 +33,7 @@ queryTS' get to Nothing =
               ( IM.toList sort $
                   qmToF qm _tIx
               )
-              `using` parBuffer 1000 rdeepseq
+              `using` parBuffer 300 rdeepseq
           )
       _ -> toCollAggR $ get $ IM.foldMap aggFunc sort (foldMapL aggFunc to) (qmToF qm _tIx)
 queryTS' get to (Just (ts, ixs)) =
