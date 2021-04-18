@@ -1,9 +1,14 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric  #-}
 module Aggregates where
 
+import           Control.DeepSeq      (NFData)
 import           Control.Monad.Except (ExceptT, MonadError (throwError))
+import           GHC.Generics
 import           Repository.Model     (AggR (AggR), QueryR (..), TS, Val)
 
 data Average n = Average {length :: !Int, sum :: !n}
+  deriving (Generic, NFData)
 
 toAvg :: a -> Average a
 toAvg = Average 1

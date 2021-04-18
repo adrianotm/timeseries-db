@@ -2,31 +2,40 @@
 
 module Repository.Queries.TS (queryTS) where
 
-import           Control.Monad.Reader       (Reader, ask)
-import           Control.Monad.Trans.Except (throwE)
-import           Data.Foldable              (Foldable (foldMap, foldMap'))
-import           Data.Functor               ((<&>))
-import qualified Data.Vector                as V
-import qualified DataS.IntMap               as IM
-import           Repository.Model           (Agg, GroupBy (..), Ix,
-                                             QueryModel (..), Tag,
-                                             TimeseriesDB (..), Timestamp)
-import           Repository.Queries.Utils   (AggRes, ExceptQ, InternalQ (..),
-                                             noDataErr, qmToF, toCollAggR,
-                                             toTSAggR, toTagAggR)
+import           Control.Monad.Reader        (Reader, ask)
+import           Control.Monad.Trans.Except  (throwE)
+import           Control.Parallel.Strategies
+import           Data.Bifunctor              (second)
+import           Data.Foldable               (Foldable (foldMap, foldMap'))
+import           Data.Functor                ((<&>))
+import qualified Data.Vector                 as V
+import qualified DataS.IntMap                as IM
+import           Repository.Model            (Agg, GroupBy (..), Ix,
+                                              QueryModel (..), Tag,
+                                              TimeseriesDB (..), Timestamp)
+import           Repository.Queries.Utils    (AggRes, ExceptQ, InternalQ (..),
+                                              noDataErr, qmToF, toCollAggR,
+                                              toTSAggR, toTagAggR)
 
 foldMapL :: Monoid m => Maybe Agg -> (a -> m) -> [a] -> m
 foldMapL Nothing  = Data.Foldable.foldMap
 foldMapL (Just _) = Data.Foldable.foldMap'
 {-# INLINE foldMapL #-}
 
-queryTS' :: (Monoid m) => (m -> a) -> (Ix -> m) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a m)
+queryTS' :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a m)
 queryTS' get to Nothing =
   ask <&> \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case groupBy of
-      (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ixs -> [(ts, foldMap' to ixs)]) (qmToF qm _tIx)
+      (Just GByTimestamp) ->
+        toTSAggR
+          ( map
+              (second (foldMap' to))
+              ( IM.toList sort $
+                  qmToF qm _tIx
+              )
+              `using` parBuffer 1000 rdeepseq
+          )
       _ -> toCollAggR $ get $ IM.foldMap aggFunc sort (foldMapL aggFunc to) (qmToF qm _tIx)
-
 queryTS' get to (Just (ts, ixs)) =
   ask <&> \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case groupBy of
@@ -34,7 +43,7 @@ queryTS' get to (Just (ts, ixs)) =
       _                   -> toCollAggR $ get $ foldMapL aggFunc to ixs
 
 -- Query by the timestamp index
-queryTS :: (Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryTS :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTS get to =
   ask >>= \InternalQ {qm = Q {..}, tdb = TimeseriesDB {..}} ->
     case tsEq of

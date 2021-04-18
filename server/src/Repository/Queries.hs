@@ -20,7 +20,7 @@ where
 
 import           Aggregates                  (Average, getAverage, handleAvg,
                                               toAvg, toCollR, toQR)
-import           Control.DeepSeq             (force)
+import           Control.DeepSeq             (NFData, force)
 import           Control.Lens                ((%~), (.~))
 import           Control.Monad.Reader        (ask)
 import           Data.Either                 (fromLeft)
@@ -115,7 +115,7 @@ vUpdateTS :: [TS] -> TimeseriesDB -> TimeseriesDB
 vUpdateTS ts db =
   db & dataV' %~ UV.force . UV.modify (\v -> forM_ ts (\ts -> UVM.write v (unsafeIndexOf (Left ts) db) (value ts)))
 
-queryF :: Monoid m => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryF :: (NFData m, Monoid m) => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of
   TSQuery  -> queryTS
   TagQuery -> queryTag

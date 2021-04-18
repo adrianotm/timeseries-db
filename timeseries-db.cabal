@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f566ad4a24700eb9773c1f0a2de754ae1cfdf3b9ebe074c823e2d4b9039247f8
+-- hash: 83f695233fffec0a9eee73d045790a79419323f23f016665cfaa63e668705fb0
 
 name:           timeseries-db
 version:        0.1.0.0
@@ -49,8 +49,10 @@ library
     , hashable
     , http-types
     , lens
+    , monad-par
     , mono-traversable
     , mtl
+    , parallel
     , safecopy
     , scientific
     , servant
@@ -72,7 +74,7 @@ executable server
       Paths_timeseries_db
   hs-source-dirs:
       server
-  ghc-options: -threaded "-with-rtsopts=-N -qg -xn -I0 -s" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -Wall -O2
+  ghc-options: -threaded "-with-rtsopts=-N -qg -qb -xn -C0 -I0 -s -lf" -fexcess-precision -funfolding-use-threshold=16 -optc-O3 -optc-ffast-math -eventlog -Wall -O2
   build-depends:
       acid-state
     , aeson
@@ -84,8 +86,10 @@ executable server
     , hashable
     , http-types
     , lens
+    , monad-par
     , mono-traversable
     , mtl
+    , parallel
     , safecopy
     , scientific
     , servant

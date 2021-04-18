@@ -87,3 +87,7 @@ foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey (Just Desc) = foldMapWithKeyDesc
 foldMapWithKey _           = IM.foldMapWithKey
 {-# INLINE foldMapWithKey #-}
+
+toList :: Maybe Sort -> IM.IntMap a -> [(Key, a)]
+toList (Just Desc) = IM.toDescList
+toList _           = IM.toList

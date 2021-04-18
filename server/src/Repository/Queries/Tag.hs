@@ -2,19 +2,22 @@
 
 module Repository.Queries.Tag (queryTag) where
 
-import           Control.Monad.Reader       (Reader, ask)
-import           Control.Monad.Trans.Except (throwE)
-import           Data.Foldable              (Foldable (foldMap', foldl'))
-import           Data.Functor               ((<&>))
-import qualified Data.Vector                as V
-import qualified DataS.HashMap              as HM
-import qualified DataS.IntMap               as IM
-import           Debug.Trace
-import           Repository.Model           (GroupBy (..), Ix, QueryModel (..),
-                                             Tag, TimeseriesDB (..))
-import           Repository.Queries.Utils   (AggRes, ExceptQ, InternalQ (..),
-                                             noDataErr, qmToF, toCollAggR,
-                                             toTSAggR, toTagAggR)
+-- import           Control.Monad.Par
+import           Control.Monad.Reader        (Reader, ask)
+import           Control.Monad.Trans.Except  (throwE)
+import           Control.Parallel.Strategies
+import           Data.Bifunctor              (second)
+import           Data.Foldable               (Foldable (foldMap', foldl'))
+import           Data.Functor                ((<&>))
+import           Data.Traversable            (traverse)
+import qualified Data.Vector                 as V
+import qualified DataS.HashMap               as HM
+import qualified DataS.IntMap                as IM
+import           Repository.Model            (GroupBy (..), Ix, QueryModel (..),
+                                              Tag, TimeseriesDB (..))
+import           Repository.Queries.Utils    (AggRes, ExceptQ, InternalQ (..),
+                                              noDataErr, qmToF, toCollAggR,
+                                              toTSAggR, toTagAggR)
 
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to =
@@ -24,15 +27,20 @@ queryTag' tag im get to =
       (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ix -> [(ts, to ix)]) (qmToF qm im)
       _ -> toCollAggR $ get $ IM.foldMap aggFunc sort to (qmToF qm im)
 
-groupTag :: Monoid m => (Ix -> m) -> ExceptQ (AggRes a m)
+groupTag :: (NFData m, Monoid m) => (Ix -> m) -> ExceptQ (AggRes a m)
 groupTag to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case tsEq of
       Nothing ->
         return $
-          toTagAggR $
-            HM.foldMapWithKey (\tag im -> [(tag, foldMap' to (qmToF qm im))]) $
-              HM.filter (not . IM.null . qmToF qm) _sIx
+          toTagAggR
+            ( map
+                (second (foldMap' to . qmToF qm))
+                ( HM.toList $
+                    HM.filter (not . IM.null . qmToF qm) _sIx
+                )
+                `using` parBuffer 100 rdeepseq
+            )
       Just ts ->
         return $
           toTagAggR $
@@ -40,7 +48,7 @@ groupTag to =
               HM.mapMaybe (IM.lookup ts) _sIx
 
 -- Query by the tag index
-queryTag :: Monoid m => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryTag :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag get to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case tagEq of
