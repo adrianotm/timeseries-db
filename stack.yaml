@@ -39,7 +39,6 @@ packages:
   - .
 
 extra-deps:
-  - acid-state-0.16.0.1
   - aeson-1.5.6.0
   - data-fix-0.3.1
   - strict-0.4.0.1
@@ -51,6 +50,8 @@ extra-deps:
   - parsec-3.1.14.0
   - text-1.2.4.1
   - servant-elm-0.7.2
+  - github: adrianotm/acid-state
+    commit: 72b56f88fbd389a9c7f2741510da352232d2479d
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:

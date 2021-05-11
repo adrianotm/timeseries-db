@@ -50,8 +50,8 @@ insertTS ts = do
                 TimeseriesDB
                   (tIxAppendTS ts _tIx startIx)
                   (sIxAppendTS ts _sIx startIx)
-                  (_data' V.++ V.fromList (map simpleTS ts))
-                  (_dataV' UV.++ UV.fromList (map value ts))
+                  (V.force $ _data' V.++ V.fromList (map simpleTS ts))
+                  (UV.force $ _dataV' UV.++ UV.fromList (map value ts))
             )
             $> []
     errors -> return $ take 10 errors
@@ -60,7 +60,7 @@ updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts =
   get >>= \db@TimeseriesDB {..} ->
     case validModify _sIx $ map simpleTS ts of
-      []     -> put (force $ vUpdateTS ts db) $> []
+      []     -> put (vUpdateTS ts db) $> []
       errors -> return $ take 10 errors
 
 clearTS :: [TS'] -> Update TimeseriesDB [Error]

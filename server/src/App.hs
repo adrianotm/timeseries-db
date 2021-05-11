@@ -6,6 +6,7 @@ where
 import           Api                      (app)
 import           Control.Exception.Base   (bracket)
 import           Data.Acid.Local          (createCheckpointAndClose,
+                                           openLocalCompactState,
                                            openLocalState)
 import           Data.Vector              as V (empty)
 import           Data.Vector.Unboxed      as UV (empty)
@@ -17,6 +18,6 @@ import           Repository.Model         (TimeseriesDB (TimeseriesDB))
 startApp :: IO ()
 startApp =
   bracket
-    (openLocalState (TimeseriesDB IM.empty HM.empty V.empty UV.empty))
+    (openLocalCompactState (TimeseriesDB IM.empty HM.empty V.empty UV.empty))
     createCheckpointAndClose
     (run 8081 . app)
