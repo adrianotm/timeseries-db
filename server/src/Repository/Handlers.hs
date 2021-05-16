@@ -30,11 +30,11 @@ import qualified DataS.HashMap            as HM
 import qualified DataS.IntMap             as IM
 import           Repository.Model         (QueryModel (..), QueryR, TS (..),
                                            TS' (..), Tag, TimeseriesDB (..),
-                                           Timestamp, data')
+                                           Timestamp)
 import           Repository.Queries       (Error, query, sIxAppendTS,
-                                           sIxDeleteTS, tIxAppendTS,
-                                           tIxDeleteTS, unsafeIndexOf,
-                                           vDeleteTS, vUpdateTS, validInsert,
+                                           sIxDeleteTS, sIxUpdateTS,
+                                           tIxAppendTS, tIxDeleteTS,
+                                           tIxUpdateTS, validInsert,
                                            validModify)
 import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
 import           System.IO.Unsafe         (unsafePerformIO)
@@ -42,45 +42,45 @@ import           System.IO.Unsafe         (unsafePerformIO)
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do
   db@TimeseriesDB {..} <- get
-  case validInsert _sIx ts of
-    [] ->
-      let startIx = V.length _data'
-       in put
-            ( force $
-                TimeseriesDB
-                  (tIxAppendTS ts _tIx startIx)
-                  (sIxAppendTS ts _sIx startIx)
-                  (V.force $ _data' V.++ V.fromList (map simpleTS ts))
-                  (UV.force $ _dataV' UV.++ UV.fromList (map value ts))
-            )
-            $> []
+  case validInsert sIx ts of
+    [] -> do
+      put $
+        force
+          ( TimeseriesDB
+              (tIxAppendTS ts tIx)
+              (sIxAppendTS ts sIx)
+          )
+      return []
     errors -> return $ take 10 errors
 
 updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts =
   get >>= \db@TimeseriesDB {..} ->
-    case validModify _sIx $ map simpleTS ts of
-      []     -> put (vUpdateTS ts db) $> []
+    case validModify sIx $ map simpleTS ts of
+      [] -> do
+        put $
+          force
+            ( TimeseriesDB
+                (tIxUpdateTS ts tIx)
+                (sIxUpdateTS ts sIx)
+            )
+        return []
       errors -> return $ take 10 errors
 
 clearTS :: [TS'] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
-  [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
+  [] -> put (TimeseriesDB IM.empty HM.empty) $> []
   dtss ->
     get >>= \db@TimeseriesDB {..} ->
-      case validModify _sIx dtss of
-        [] ->
+      case validModify sIx dtss of
+        [] -> do
           put
             ( force $
                 TimeseriesDB
-                  (tIxDeleteTS dtss db)
-                  (sIxDeleteTS dtss db)
-                  newData
-                  newDataV
+                  (tIxDeleteTS dtss tIx)
+                  (sIxDeleteTS dtss sIx)
             )
-            $> []
-          where
-            (newData, newDataV) = vDeleteTS dtss db
+          return []
         errors -> return $ take 10 errors
 
 filterTS ::

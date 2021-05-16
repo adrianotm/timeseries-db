@@ -29,7 +29,6 @@ dependencies:
   - mtl
   - acid-state
   - safecopy
-  - lens
   - vector
   - transformers
   - scientific

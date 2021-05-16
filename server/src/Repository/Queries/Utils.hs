@@ -46,11 +46,11 @@ noDataErr (Left tg)  = "No data for tag " ++ show tg ++ "."
 noDataErr (Right ts) = "No data for timestamp " ++ show ts ++ "."
 
 -- Create a TS by combining the two vectors
-makeTS :: TimeseriesDB -> Ix -> TS
-makeTS TimeseriesDB {..} ix = TS timestamp' tag' val
-  where
-    TS' {..} = V.unsafeIndex _data' ix
-    val = UV.unsafeIndex _dataV' ix
+-- makeTS :: TimeseriesDB -> Ix -> TS
+-- makeTS TimeseriesDB {..} ix = TS timestamp' tag' val
+--   where
+--     TS' {..} = V.unsafeIndex _data' ix
+--     val = UV.unsafeIndex _dataV' ix
 
 toCollAggR :: a -> AggRes a v
 toCollAggR = Left

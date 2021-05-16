@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4c79338b939d322b523f70e75301419ed8fd763eab1d910f17c12ce00bfc0bdf
+-- hash: 16d9b71ada49586a98dea2d549838b07f3cb36c38dc9ebceaeeb00c4718d1c2e
 
 name:           timeseries-db
 version:        0.1.0.0
@@ -48,7 +48,6 @@ library
     , elm-bridge
     , hashable
     , http-types
-    , lens
     , monad-par
     , mono-traversable
     , mtl
@@ -85,7 +84,6 @@ executable server
     , elm-bridge
     , hashable
     , http-types
-    , lens
     , monad-par
     , mono-traversable
     , mtl

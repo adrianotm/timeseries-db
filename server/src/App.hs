@@ -18,6 +18,6 @@ import           Repository.Model         (TimeseriesDB (TimeseriesDB))
 startApp :: IO ()
 startApp =
   bracket
-    (openLocalCompactState (TimeseriesDB IM.empty HM.empty V.empty UV.empty))
+    (openLocalState (TimeseriesDB IM.empty HM.empty))
     createCheckpointAndClose
     (run 8081 . app)

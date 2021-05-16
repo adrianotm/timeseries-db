@@ -23,7 +23,6 @@ module Repository.Model where
 
 import           Control.Applicative  ((<|>))
 import           Control.DeepSeq      (NFData, deepseq, force)
-import           Control.Lens         (makeLenses)
 import           Control.Monad        (forM, liftM)
 import           Control.Monad.Except (ExceptT)
 import           Control.Monad.Fail   (fail)
@@ -87,27 +86,28 @@ newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
   deriving (Show, Generic)
 
 data TS = TS
-  { timestamp :: !Timestamp,
+  { timestamp :: {-# UNPACK #-} !Timestamp,
     tag       :: !Tag,
-    value     :: !Val
-  }
-  deriving (Show, Eq, Generic, NFData)
-
-data TS' = TS'
-  { timestamp' :: {-# UNPACK #-} !Timestamp,
-    tag'       :: {-# UNPACK #-} !Tag
+    value     :: {-# UNPACK #-} !Val
   }
   deriving (Show, Generic, NFData)
 
-type TimestampIndex = IM.IntMap [Ix]
+instance Eq TS where
+  TS ts1 tg1 _ == TS ts2 tg2 _ = ts1 == ts2 && tg1 == tg2
 
-type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
+data TS' = TS'
+  { timestamp' :: {-# UNPACK #-} !Timestamp,
+    tag'       :: !Tag
+  }
+  deriving (Show, Generic, NFData)
+
+type TimestampIndex = IM.IntMap [TS]
+
+type TagIndex = HM.HashMap Tag (IM.IntMap TS)
 
 data TimeseriesDB = TimeseriesDB
-  { _tIx    :: TimestampIndex,
-    _sIx    :: TagIndex,
-    _data'  :: V.Vector TS',
-    _dataV' :: UV.Vector Val
+  { tIx :: TimestampIndex,
+    sIx :: TagIndex
   }
   deriving (Generic, NFData)
 
@@ -124,8 +124,6 @@ data QueryModel = Q
     limit   :: Maybe Limit
   }
   deriving (Generic, Show)
-
-makeLenses ''TimeseriesDB
 
 onlyAgg :: QueryModel -> (Bool, Agg)
 onlyAgg (Q Nothing Nothing Nothing Nothing Nothing Nothing (Just a) Nothing _ _) = (True, a)
@@ -148,9 +146,9 @@ instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => S
 instance SafeCopy TimeseriesDB where
   getCopy =
     contain $
-      (\a b c d -> let db = TimeseriesDB a b c d in force db)
-        <$> safeGet <*> safeGet <*> safeGet <*> safeGet
-  putCopy TimeseriesDB {..} = contain $ do safePut _tIx; safePut _sIx; safePut _data'; safePut _dataV'
+      (\a b -> let db = TimeseriesDB a b in force db)
+        <$> safeGet <*> safeGet
+  putCopy TimeseriesDB {..} = contain $ do safePut tIx; safePut sIx;
 
 instance Bounded Double where
   minBound = -1 / 0

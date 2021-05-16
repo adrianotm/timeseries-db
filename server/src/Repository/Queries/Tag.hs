@@ -14,12 +14,12 @@ import qualified Data.Vector                 as V
 import qualified DataS.HashMap               as HM
 import qualified DataS.IntMap                as IM
 import           Repository.Model            (GroupBy (..), Ix, QueryModel (..),
-                                              Tag, TimeseriesDB (..))
+                                              TS (..), Tag, TimeseriesDB (..))
 import           Repository.Queries.Utils    (AggRes, ExceptQ, InternalQ (..),
                                               noDataErr, qmToF, toCollAggR,
                                               toTSAggR, toTagAggR)
 
-queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryTag' :: Monoid m => Tag -> IM.IntMap TS -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to =
   ask <&> \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case groupBy of
@@ -27,7 +27,7 @@ queryTag' tag im get to =
       (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ix -> [(ts, to ix)]) (qmToF qm im)
       _ -> toCollAggR $ get $ IM.foldMap aggFunc sort to (qmToF qm im)
 
-groupTag :: (NFData m, Monoid m) => (Ix -> m) -> ExceptQ (AggRes a m)
+groupTag :: (NFData m, Monoid m) => (TS -> m) -> ExceptQ (AggRes a m)
 groupTag to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case tsEq of
@@ -37,7 +37,7 @@ groupTag to =
             ( map
                 (second (foldMap' to . qmToF qm))
                 ( HM.toList $
-                    HM.filter (not . IM.null . qmToF qm) _sIx
+                    HM.filter (not . IM.null . qmToF qm) sIx
                 )
                 `using` parBuffer 100 rdeepseq
             )
@@ -45,15 +45,15 @@ groupTag to =
         return $
           toTagAggR $
             HM.foldMapWithKey (\tag ix -> [(tag, to ix)]) $
-              HM.mapMaybe (IM.lookup ts) _sIx
+              HM.mapMaybe (IM.lookup ts) sIx
 
 -- Query by the tag index
-queryTag :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryTag :: (NFData m, Monoid m) => (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
 queryTag get to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
     case tagEq of
       Nothing -> groupTag to
-      (Just tag) -> case HM.lookup tag _sIx of
+      (Just tag) -> case HM.lookup tag sIx of
         Nothing -> throwE $ noDataErr (Left tag)
         (Just im) -> case tsEq of
           Nothing -> queryTag' tag im get to

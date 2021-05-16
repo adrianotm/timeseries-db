@@ -5,15 +5,14 @@
 
 module Repository.Queries
   ( Error,
-    unsafeIndexOf,
     validInsert,
     validModify,
     tIxAppendTS,
     sIxAppendTS,
+    tIxUpdateTS,
+    sIxUpdateTS,
     tIxDeleteTS,
     sIxDeleteTS,
-    vDeleteTS,
-    vUpdateTS,
     query,
   )
 where
@@ -21,7 +20,6 @@ where
 import           Aggregates                  (Average, getAverage, handleAvg,
                                               toAvg, toCollR, toQR)
 import           Control.DeepSeq             (NFData, force)
-import           Control.Lens                ((%~), (.~))
 import           Control.Monad.Reader        (ask)
 import           Data.Either                 (fromLeft)
 import           Data.Foldable               (forM_)
@@ -42,20 +40,15 @@ import           Repository.Model            (Agg (..), Ix, QueryModel (..),
                                               QueryR (..), TS (..), TS' (..),
                                               Tag, TagIndex, TimeseriesDB (..),
                                               Timestamp, TimestampIndex, Val,
-                                              data', dataV', onlyAgg)
+                                              onlyAgg)
 import           Repository.Queries.Tag      (queryTag)
 import           Repository.Queries.TS       (queryTS)
 import           Repository.Queries.Utils    (AggRes, ExceptQ,
                                               InternalQ (InternalQ, qm, tdb),
                                               QueryType (TSQuery, TagQuery),
-                                              makeTS, ofoldMap', qmToQT, toQRG)
+                                              ofoldMap', qmToQT, toQRG)
 
 type Error = String
-
--- Returns the position of TS or TS' in the vector
-unsafeIndexOf :: Either TS TS' -> TimeseriesDB -> Ix
-unsafeIndexOf (Left TS {..}) TimeseriesDB {..} = (_sIx HM.! tag) IM.! timestamp
-unsafeIndexOf (Right TS' {..}) TimeseriesDB {..} = (_sIx HM.! tag') IM.! timestamp'
 
 errMsgModify :: Timestamp -> Tag -> Error
 errMsgModify timestamp tag = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " not found."
@@ -69,76 +62,73 @@ validModify sIx = mapMaybe (\ts@TS' {..} -> maybe (Just $ errMsgModify timestamp
 validInsert :: TagIndex -> [TS] -> [Error]
 validInsert sIx = mapMaybe (\ts@TS {..} -> const (Just $ errMsgInsert ts) =<< IM.lookup timestamp =<< HM.lookup tag sIx)
 
-tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
-tIxAppendTS ts im ix =
-  foldl' (\acc (ts, inx) -> IM.insertWith (++) ts inx acc) im appIM
-  where
-    appIM = [(timestamp, [i]) | TS {..} <- ts | i <- [ix ..]]
+tIxAppendTS :: [TS] -> TimestampIndex -> TimestampIndex
+tIxAppendTS tss im =
+  foldl' (\acc ts@TS{..} -> IM.insertWith (++) timestamp [ts] acc) im tss
 
-sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
-sIxAppendTS ts m ix =
-  foldl' f m appIM
+sIxAppendTS :: [TS] -> TagIndex -> TagIndex
+sIxAppendTS tss m =
+  foldl' f m tss
   where
-    appIM = [(tag, timestamp, i) | TS {..} <- ts | i <- [ix ..]]
-    f acc (tag, timestamp, ix) =
+    f acc ts@TS{..} =
       case HM.lookup tag acc of
-        Nothing   -> HM.insert tag (IM.fromList [(timestamp, ix)]) acc
-        (Just im) -> HM.insert tag (IM.insert timestamp ix im) acc
+        Nothing   -> HM.insert tag (IM.fromList [(timestamp, ts)]) acc
+        (Just im) -> HM.insert tag (IM.insert timestamp ts im) acc
 
-tIxDeleteTS :: [TS'] -> TimeseriesDB -> TimestampIndex
-tIxDeleteTS dtss db@TimeseriesDB {..} =
-  foldl' (\acc (ts, ix) -> IM.update (f ix) ts acc) _tIx dts
+tIxUpdateTS :: [TS] -> TimestampIndex -> TimestampIndex
+tIxUpdateTS tss im =
+  foldl' (\acc ts@TS{..} -> IM.update (f ts) timestamp acc) im tss
   where
-    dts = [(timestamp', unsafeIndexOf (Right dts) db) | dts@TS' {..} <- dtss]
-    f ix l = case L.delete ix l of
+    f ts l = Just $ ts : L.delete ts l
+
+sIxUpdateTS :: [TS] -> TagIndex -> TagIndex
+sIxUpdateTS tss m =
+  foldl' (\acc ts@TS{..} -> HM.update (fhm ts) tag acc) m tss
+  where
+    fhm ts@TS{..} im = Just $ IM.insert timestamp ts im
+
+tIxDeleteTS :: [TS'] -> TimestampIndex -> TimestampIndex
+tIxDeleteTS dtss im =
+  foldl' (\acc TS'{..} -> IM.update (f (TS timestamp' tag' 0)) timestamp' acc) im dtss
+  where
+    f ts l = case L.delete ts l of
       []  -> Nothing
-      ixs -> Just ixs
+      tss -> Just tss
 
-sIxDeleteTS :: [TS'] -> TimeseriesDB -> TagIndex
-sIxDeleteTS dtss db@TimeseriesDB {..} =
-  foldl' (\acc (tag, ts) -> HM.update (fhm ts) tag acc) _sIx dhm
+sIxDeleteTS :: [TS'] -> TagIndex -> TagIndex
+sIxDeleteTS dtss m =
+  foldl' (\acc TS'{..} -> HM.update (fhm timestamp') tag' acc) m dtss
   where
-    dhm = [(tag', timestamp') | dts@TS' {..} <- dtss]
     fhm ts im =
       let nim = IM.delete ts im
        in if nim == IM.empty
             then Nothing
             else Just nim
 
-vDeleteTS :: [TS'] -> TimeseriesDB -> (V.Vector TS', UV.Vector Val)
-vDeleteTS dtss db@TimeseriesDB {..} = (V.force $ V.ifilter f _data', UV.force $ UV.ifilter f _dataV')
-  where
-    f ix _ = not $ HM.member ix ixs
-    ixs = force $ HM.fromList $ L.map ((,True) . flip unsafeIndexOf db . Right) dtss
-
-vUpdateTS :: [TS] -> TimeseriesDB -> TimeseriesDB
-vUpdateTS ts db =
-  db & dataV' %~ UV.force . UV.modify (\v -> forM_ ts (\ts -> UVM.write v (unsafeIndexOf (Left ts) db) (value ts)))
-
-queryF :: (NFData m, Monoid m) => QueryModel -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
+queryF :: (NFData m, Monoid m) => QueryModel -> (m -> a) -> (TS -> m) -> ExceptQ (AggRes a m)
 queryF qm = case qmToQT qm of
   TSQuery  -> queryTS
   TagQuery -> queryTag
 
--- Aggergate the vector
-queryVec :: Agg -> ExceptQ QueryR
-queryVec agg =
-  ask >>= \InternalQ {tdb = TimeseriesDB {..}} ->
-    let foldMMap' get to = return $ toQR $ get $ ofoldMap' to _dataV'
-     in case agg of
-          AvgAgg -> handleAvg "Average failed." $ getAverage $ ofoldMap' toAvg _dataV'
-          CountAgg -> return $ toQR $ fromIntegral $ V.length _data'
-          SumAgg -> foldMMap' getSum Sum
-          MinAgg -> foldMMap' getMin Min
-          MaxAgg -> foldMMap' getMax Max
+-- -- Aggergate the vector
+-- queryVec :: Agg -> ExceptQ QueryR
+-- queryVec agg =
+--   ask >>= \InternalQ {tdb = TimeseriesDB {..}} ->
+--     let foldMMap' get to = return $ toQR $ get $ ofoldMap' to _dataV'
+--      in case agg of
+--           AvgAgg -> handleAvg "Average failed." $ getAverage $ ofoldMap' toAvg _dataV'
+--           CountAgg -> return $ toQR $ fromIntegral $ V.length _data'
+--           SumAgg -> foldMMap' getSum Sum
+--           MinAgg -> foldMMap' getMin Min
+--           MaxAgg -> foldMMap' getMax Max
 
 -- Query the indexes
-queryDS :: ExceptQ QueryR
-queryDS =
+query :: ExceptQ QueryR
+query =
   ask
     >>= \InternalQ {qm = qm@Q {..}, tdb = tdb@TimeseriesDB {..}} ->
-      let toM to ix = to $! UV.unsafeIndex _dataV' ix
-          simpleAgg get to = queryF qm get to <&> either toQR (toQRG get limit)
+      let toM to TS{..} = to value
+          simpleAgg get toM = queryF qm get toM <&> either toQR (toQRG get limit)
        in case aggFunc of
             (Just AvgAgg) ->
               queryF qm getAverage (toM toAvg)
@@ -150,14 +140,12 @@ queryDS =
             (Just MinAgg) -> simpleAgg getMin (toM Min)
             (Just MaxAgg) -> simpleAgg getMax (toM Max)
             Nothing ->
-              queryF qm id (\ix -> [makeTS tdb ix])
+              queryF qm id (: [])
                 <&> toCollR . maybe id take limit . fromLeft []
 
 -- Decides whether to use the vector directly or the indexes
-query :: ExceptQ QueryR
-query =
-  ask >>= \InternalQ {..} ->
-    let (isOnlyAgg, agg) = onlyAgg qm
-     in if isOnlyAgg
-          then queryVec agg
-          else queryDS
+-- query :: ExceptQ QueryR
+-- query =
+--   ask >>= \InternalQ {..} ->
+--     let (isOnlyAgg, agg) = onlyAgg qm
+--      in queryDS
