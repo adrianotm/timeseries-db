@@ -2,11 +2,11 @@
 {-# LANGUAGE DeriveGeneric  #-}
 module Aggregates where
 
-import           Control.DeepSeq      (NFData)
-import           Control.Monad.Except (ExceptT, MonadError (throwError))
+import           Control.DeepSeq  (NFData)
 import           GHC.Generics
-import           Repository.Model     (AggR (AggR), QueryR (..), TS, Val)
+import           Repository.Model (AggR (AggR), QueryR (..), TS, Val)
 
+-- | A Monoid for getting the average
 data Average n = Average {length :: !Int, sum :: !n}
   deriving (Generic, NFData)
 
@@ -26,15 +26,3 @@ instance Num n => Monoid (Average n) where
   mappend = (<>)
   mempty = Average 0 0
 
-toQR :: Val -> QueryR
-toQR = QR . Right . Right . AggR
-{-# INLINE toQR #-}
-
-toCollR :: [TS] -> QueryR
-toCollR = QR . Left
-{-# INLINE toCollR #-}
-
--- Throw an error if the average failed
-handleAvg :: Monad m => String -> Maybe Val -> ExceptT String m QueryR
-handleAvg err = maybe (throwError err) (return . toQR)
-{-# INLINE handleAvg #-}

@@ -19,6 +19,8 @@ import           Repository.Queries.Utils    (AggRes, ExceptQ, InternalQ (..),
                                               noDataErr, qmToF, toCollAggR,
                                               toTSAggR, toTagAggR)
 
+-- | Helper function when a 'tagEq' is present
+-- do aggregations depending on the 'groupBy'
 queryTag' :: Monoid m => Tag -> IM.IntMap Ix -> (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag' tag im get to =
   ask <&> \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
@@ -27,6 +29,9 @@ queryTag' tag im get to =
       (Just GByTimestamp) -> toTSAggR $ IM.foldMapWithKey sort (\ts ix -> [(ts, to ix)]) (qmToF qm im)
       _ -> toCollAggR $ get $ IM.foldMap aggFunc sort to (qmToF qm im)
 
+-- | Helper function when 'groupBy = "tag"' exists in the query, but not 'tagEq'
+-- aggregate each group in parallel
+-- if a 'tsEq' is present, filter out the tags with no data for that timestamp
 groupTag :: (NFData m, Monoid m) => (Ix -> m) -> ExceptQ (AggRes a m)
 groupTag to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
@@ -47,7 +52,9 @@ groupTag to =
             HM.foldMapWithKey (\tag ix -> [(tag, to ix)]) $
               HM.mapMaybe (IM.lookup ts) _sIx
 
--- Query by the tag index
+-- | Query by the tag index
+-- the query either has a 'groupBy = "tag"' or 'tagEq' or both
+-- throw an error if no data exists for a tag
 queryTag :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTag get to =
   ask >>= \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->

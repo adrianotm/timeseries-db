@@ -17,11 +17,17 @@ import           Repository.Queries.Utils    (AggRes, ExceptQ, InternalQ (..),
                                               noDataErr, qmToF, toCollAggR,
                                               toTSAggR, toTagAggR)
 
+-- | Use a strict foldMap when a 'aggFunc' is present in the query
 foldMapL :: Monoid m => Maybe Agg -> (a -> m) -> [a] -> m
 foldMapL Nothing  = Data.Foldable.foldMap
 foldMapL (Just _) = Data.Foldable.foldMap'
 {-# INLINE foldMapL #-}
 
+-- | Helper function to query the timestamp index
+-- if a 'groupBy' is present, aggregate each group in parallel
+-- otherwise aggregate the whole data with a Monoid
+--
+-- 'groupBy = "tag"' can't exist because the queryTag function would have been picked
 queryTS' :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> Maybe (Timestamp, [Ix]) -> ExceptQ (AggRes a m)
 queryTS' get to Nothing =
   ask <&> \InternalQ {qm = qm@Q {..}, tdb = TimeseriesDB {..}} ->
@@ -42,7 +48,12 @@ queryTS' get to (Just (ts, ixs)) =
       (Just GByTimestamp) -> toTSAggR [(ts, foldMap' to ixs)]
       _                   -> toCollAggR $ get $ foldMapL aggFunc to ixs
 
--- Query by the timestamp index
+-- | Query by the timestamp index i.e. the IntMap
+-- Check whether a 'tsEq' is present in the query:
+-- if it isn't, pass Nothing as third third argument of the helper function
+-- else if no data exists for that timestamp, throw an error
+-- else pass the data for that timestamp to the helper function
+-- return the aggregation result
 queryTS :: (NFData m, Monoid m) => (m -> a) -> (Ix -> m) -> ExceptQ (AggRes a m)
 queryTS get to =
   ask >>= \InternalQ {qm = Q {..}, tdb = TimeseriesDB {..}} ->

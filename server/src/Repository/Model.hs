@@ -55,13 +55,9 @@ import           GHC.Generics         (Generic)
 import           System.IO.Unsafe     (unsafePerformIO)
 
 type Timestamp = Int
-
 type Val = Double
-
 type Ix = Int
-
 type Limit = Int
-
 type Tag = Text
 
 data GroupBy = GByTimestamp | GByTag
@@ -73,16 +69,17 @@ data Sort = Asc | Desc
 data Agg = AvgAgg | SumAgg | CountAgg | MinAgg | MaxAgg
   deriving (Show, Generic)
 
-type ExceptionQuery = ExceptT String (Query TimeseriesDB)
-
 type CollectR = [TS]
 
+-- | Type for a single value got by the 'aggFunc'
 newtype AggR = AggR {result :: Val}
   deriving (Show, Generic, ToJSON, FromJSON)
 
+-- | Type for a group and its aggregated value
 data GroupAggR = GroupAggR {_group :: Either Tag Timestamp, _result :: Val}
   deriving (Show, Generic)
 
+-- | Type for the query result
 newtype QueryR = QR (Either CollectR (Either [GroupAggR] AggR))
   deriving (Show, Generic)
 
@@ -103,6 +100,7 @@ type TimestampIndex = IM.IntMap [Ix]
 
 type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 
+-- | The value column is in a seperate unboxed vector as it is used in every aggregation
 data TimeseriesDB = TimeseriesDB
   { _tIx    :: TimestampIndex,
     _sIx    :: TagIndex,
@@ -111,26 +109,29 @@ data TimeseriesDB = TimeseriesDB
   }
   deriving (Generic, NFData)
 
+-- | The query parameters can be combined
 data QueryModel = Q
-  { gt      :: Maybe Timestamp,
-    lt      :: Maybe Timestamp,
-    ge      :: Maybe Timestamp,
-    le      :: Maybe Timestamp,
-    tsEq    :: Maybe Timestamp,
-    tagEq   :: Maybe Tag,
-    aggFunc :: Maybe Agg,
-    groupBy :: Maybe GroupBy,
-    sort    :: Maybe Sort,
-    limit   :: Maybe Limit
+  { gt      :: Maybe Timestamp,  -- get all the data with a timestamp greater then
+    lt      :: Maybe Timestamp,  -- get all the data with a timestamp less then
+    ge      :: Maybe Timestamp,  -- get all the data with a timestamp greater or equal then
+    le      :: Maybe Timestamp,  -- get all the data with a timestamp less or equal then
+    tsEq    :: Maybe Timestamp,  -- get all the data for a specific timestamp
+    tagEq   :: Maybe Tag,        -- get all the data for a specific tag
+    aggFunc :: Maybe Agg,        -- aggregate the data
+    groupBy :: Maybe GroupBy,    -- group by tag or timestamp, aggFunc must be present
+    sort    :: Maybe Sort,       -- sort the result asc or desc, the default is asc
+    limit   :: Maybe Limit       -- limit the entries returned
   }
   deriving (Generic, Show)
 
 makeLenses ''TimeseriesDB
 
+-- | Check if only the aggFunc is present
 onlyAgg :: QueryModel -> (Bool, Agg)
 onlyAgg (Q Nothing Nothing Nothing Nothing Nothing Nothing (Just a) Nothing _ _) = (True, a)
 onlyAgg _ = (False, CountAgg)
 
+-- | Check if the query is illegal
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'groupBy'.")
 illegalQM Q {gt = (Just _), ge = (Just _)} = (True, "Can't query 'gt' and 'ge' at the same time.")
