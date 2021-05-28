@@ -40,8 +40,8 @@ import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
 import           System.IO.Unsafe         (unsafePerformIO)
 
 -- | Insert new data
--- if some data already exists, return a list of errors
--- else proceed with inserting and return an empty list
+--   if some data already exists, return a list of errors
+--   else proceed with inserting and return an empty list
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do
   db@TimeseriesDB {..} <- get
@@ -60,8 +60,8 @@ insertTS ts = do
     errors -> return $ take 10 errors
 
 -- | Update data
--- if some data doesn't exist, return a list of errors
--- else proceed with updating and return an empty list
+--   if some data doesn't exist, return a list of errors
+--   else proceed with updating and return an empty list
 updateTS :: [TS] -> Update TimeseriesDB [Error]
 updateTS ts =
   get >>= \db@TimeseriesDB {..} ->
@@ -70,9 +70,9 @@ updateTS ts =
       errors -> return $ take 10 errors
 
 -- | Delete data
--- if an empty list is passed, clear the whole database
--- else if some data doesn't exist, return a list of errors
--- else proceed with deleting data and return an empty list
+--   if an empty list is passed, clear the whole database
+--   else if some data doesn't exist, return a list of errors
+--   else proceed with deleting data and return an empty list
 clearTS :: [TS'] -> Update TimeseriesDB [Error]
 clearTS dts = case dts of
   [] -> put (TimeseriesDB IM.empty HM.empty V.empty UV.empty) $> []
@@ -94,7 +94,7 @@ clearTS dts = case dts of
         errors -> return $ take 10 errors
 
 -- | Query data
--- returns either an error or the query result
+--   returns either an error or the query result
 filterTS ::
   QueryModel ->
   Query TimeseriesDB (Either Error QueryR)

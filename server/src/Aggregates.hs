@@ -6,7 +6,7 @@ import           Control.DeepSeq  (NFData)
 import           GHC.Generics
 import           Repository.Model (AggR (AggR), QueryR (..), TS, Val)
 
--- | A Monoid for getting the average
+-- | A Monoid for getting the average value
 data Average n = Average {length :: !Int, sum :: !n}
   deriving (Generic, NFData)
 

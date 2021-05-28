@@ -81,15 +81,15 @@ toTSAggR = Right . Right
 {-# INLINE toTSAggR #-}
 
 -- | Transform grouped aggregates to a QueryR
--- limit the results
+--   use the 'limit' parameter
 toQRG :: Semigroup v => (v -> Val) -> Maybe Limit -> Either [(Tag, v)] [(Timestamp, v)] -> QueryR
 toQRG f limit m = QR $ Right $ Left $ maybe id take limit $ either (trans Left) (trans Right) m
   where
     trans keyF l = map (\(k, v) -> GroupAggR (keyF k) (f v)) l
 
 -- | Decide whether to query the timestamp index or the tag/timestamp index
--- if 'tagEq' or 'groupBy = "tag"' are present in the query, use the tag/timestamp index
--- otherwise use the timestamp index
+--   if 'tagEq' or 'groupBy = "tag"' are present in the query, use the tag/timestamp index
+--   otherwise use the timestamp index
 qmToQT :: QueryModel -> QueryType
 qmToQT Q {tagEq = (Just _)}        = TagQuery
 qmToQT Q {groupBy = (Just GByTag)} = TagQuery

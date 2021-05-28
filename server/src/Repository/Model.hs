@@ -103,7 +103,7 @@ type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 -- | The value column is in a seperate unboxed vector as it is used in every aggregation
 data TimeseriesDB = TimeseriesDB
   { _tIx    :: TimestampIndex,
-    _sIx    :: TagIndex,
+    _sIx    :: TagIndex,  -- tag/timestamp composite index
     _data'  :: V.Vector TS',
     _dataV' :: UV.Vector Val
   }
@@ -118,20 +118,20 @@ data QueryModel = Q
     tsEq    :: Maybe Timestamp,  -- get all the data for a specific timestamp
     tagEq   :: Maybe Tag,        -- get all the data for a specific tag
     aggFunc :: Maybe Agg,        -- aggregate the data
-    groupBy :: Maybe GroupBy,    -- group by tag or timestamp, aggFunc must be present
-    sort    :: Maybe Sort,       -- sort the result asc or desc, the default is asc
+    groupBy :: Maybe GroupBy,    -- group by tag or timestamp, 'aggFunc' must be present
+    sort    :: Maybe Sort,       -- sort the result "asc" or "desc", the default is "asc"
     limit   :: Maybe Limit       -- limit the entries returned
   }
   deriving (Generic, Show)
 
 makeLenses ''TimeseriesDB
 
--- | Check if only the aggFunc is present
+-- | Check if only the 'aggFunc' is present
 onlyAgg :: QueryModel -> (Bool, Agg)
 onlyAgg (Q Nothing Nothing Nothing Nothing Nothing Nothing (Just a) Nothing _ _) = (True, a)
 onlyAgg _ = (False, CountAgg)
 
--- | Check if the query is illegal
+-- | Check if the query is legal
 illegalQM :: QueryModel -> (Bool, String)
 illegalQM Q {groupBy = (Just _), aggFunc = Nothing} = (True, "You must provie 'aggFunc' with 'groupBy'.")
 illegalQM Q {gt = (Just _), ge = (Just _)} = (True, "Can't query 'gt' and 'ge' at the same time.")

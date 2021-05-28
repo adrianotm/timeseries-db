@@ -32,7 +32,7 @@ import qualified Data.IntMap.Strict   as IM
 import           Repository.Model     (Agg, Sort (Desc))
 
 -- | Return the subtree with keys greater then
--- Bool - return the equal key
+--   Bool - return the equal key
 getGT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
 getGT re k im =
   case im of
@@ -47,7 +47,7 @@ getGT re k im =
     Nil -> Nil
 
 -- | Return the subtree with keys less then
---- Bool - return the equal key
+--   Bool - return the equal key
 getLT :: Bool -> Key -> IM.IntMap a -> IM.IntMap a
 getLT re k im =
   case im of
@@ -77,21 +77,21 @@ foldMapWithKeyDesc f = go
     go (Tip kx x)    = f kx x
     go (Bin _ m l r) = go r `mappend` go l
 
--- | Choose a foldMap depending on the aggregation function and the sort
--- use a strict foldMap if 'aggFunc' is present in the query
+-- | Choose a foldMap depending on the 'aggFunc' and the 'sort'
+--   use a strict foldMap if 'aggFunc' is present in the query
 foldMap :: Monoid m => Maybe Agg -> Maybe Sort -> (a -> m) -> IM.IntMap a -> m
 foldMap Nothing (Just Desc) = foldMapDesc
 foldMap Nothing _           = Data.Foldable.foldMap
 foldMap (Just _) _          = Data.Foldable.foldMap'
 {-# INLINE foldMap #-}
 
--- | Choose a foldMap depending on the sort
+-- | Choose a foldMap depending on the 'sort'
 foldMapWithKey :: Monoid m => Maybe Sort -> (Key -> a -> m) -> IM.IntMap a -> m
 foldMapWithKey (Just Desc) = foldMapWithKeyDesc
 foldMapWithKey _           = IM.foldMapWithKey
 {-# INLINE foldMapWithKey #-}
 
--- | Choose a toList depending on the sort
+-- | Choose a toList depending on the 'sort'
 toList :: Maybe Sort -> IM.IntMap a -> [(Key, a)]
 toList (Just Desc) = IM.toDescList
 toList _           = IM.toList

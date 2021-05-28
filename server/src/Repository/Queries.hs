@@ -66,14 +66,14 @@ errMsgInsert :: TS -> Error
 errMsgInsert TS {..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show tag ++ " already exists."
 
 -- | For a given list of data that needs to be updated or deleted,
--- return a error message for each entrie that doesn't exist in the database
--- if there are no errors, it means that the modification is valid
+--   return a error message for each entrie that doesn't exist in the database
+--   if there are no errors, it means that the modification is valid
 validModify :: TagIndex -> [TS'] -> [Error]
 validModify sIx = mapMaybe (\ts@TS' {..} -> maybe (Just $ errMsgModify timestamp' tag') (const Nothing) (IM.lookup timestamp' =<< HM.lookup tag' sIx))
 
 -- | For a given list of data that needs to be inserted,
--- return a error message for each entrie that already exists in the database
--- if there are no errors, it means that the insertion is valid
+--   return a error message for each entrie that already exists in the database
+--   if there are no errors, it means that the insertion is valid
 validInsert :: TagIndex -> [TS] -> [Error]
 validInsert sIx = mapMaybe (\ts@TS {..} -> const (Just $ errMsgInsert ts) =<< IM.lookup timestamp =<< HM.lookup tag sIx)
 
@@ -136,7 +136,7 @@ queryF qm = case qmToQT qm of
   TagQuery -> queryTag
 
 -- | Query the indexes
--- aggregate data using different Monoids depending on the aggregation function
+--   aggregate data using different Monoids depending on the aggregation function
 queryDS :: ExceptQ QueryR
 queryDS =
   ask
@@ -170,8 +170,8 @@ queryVec agg =
           MaxAgg -> foldMMap' getMax Max
 
 -- | Decide whether to use the indexes or the vector directly
--- if only a 'aggFunc' is present in the query, then use the vector
--- otherwise use the indexes
+--   if only an 'aggFunc' is present in the query, then use the vector
+--   otherwise use the indexes
 query :: ExceptQ QueryR
 query =
   ask >>= \InternalQ {..} ->

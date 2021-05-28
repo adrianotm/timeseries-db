@@ -44,7 +44,8 @@ api :: Proxy API
 api = Proxy
 
 -- | Insert new data
--- returns a list of errors i.e. data that already exists in the database
+--   if the insert is invalid,
+--   returns a list of errors i.e. data that already exists in the database
 insertData :: [TS] -> AcidReaderT ()
 insertData ts =
   ask >>= flip update' (InsertTS ts)
@@ -53,7 +54,8 @@ insertData ts =
       errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
 -- | Update data
--- returns a list of errors i.e. data that doesn't exist in the database
+--   if the update is invalid,
+--   returns a list of errors i.e. data that doesn't exist in the database
 updateData :: [TS] -> AcidReaderT ()
 updateData ts =
   ask >>= flip update' (UpdateTS ts)
@@ -62,7 +64,8 @@ updateData ts =
       errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
 -- | Delete data
--- returns a list of errors i.e. data that doesn't exist in the database
+--   if the delete is invalid
+--   returns a list of errors i.e. data that doesn't exist in the database
 deleteData :: [TS'] -> AcidReaderT ()
 deleteData dts =
   ask >>= flip update' (ClearTS dts)
@@ -71,7 +74,7 @@ deleteData dts =
       errors -> throwError $ err400 {errBody = C.pack $ unlines errors}
 
 -- | Query data
--- returns either an error or the query result
+--   returns either an error or the query result
 queryData ::
   QueryModel ->
   AcidReaderT QueryR
