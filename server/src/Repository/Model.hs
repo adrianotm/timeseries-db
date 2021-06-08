@@ -21,43 +21,34 @@
 
 module Repository.Model where
 
-import           Control.Applicative  ((<|>))
-import           Control.DeepSeq      (NFData, deepseq, force)
-import           Control.Lens         (makeLenses)
-import           Control.Monad        (forM, liftM)
-import           Control.Monad.Except (ExceptT)
-import           Control.Monad.Fail   (fail)
-import           Control.Monad.Reader (Reader)
-import           Data.Acid            (Query, Update, makeAcidic)
-import           Data.Aeson           (FromJSON, Object, ToJSON,
-                                       Value (Number, String), object, pairs,
-                                       parseJSON, toEncoding, toJSON,
-                                       withObject, (.!=), (.:), (.:?), (.=))
-import           Data.Aeson.TH        as AS (defaultOptions, deriveFromJSON,
-                                             deriveJSON, fieldLabelModifier,
-                                             rejectUnknownFields)
-import           Data.Hashable        (Hashable)
-import qualified Data.IntMap.Strict   as IM
-import qualified Data.Map             as M
-import           Data.Maybe           (isJust, mapMaybe)
-import           Data.SafeCopy        (SafeCopy, base, contain, deriveSafeCopy,
-                                       getCopy, putCopy, safeGet, safePut)
-import           Data.Scientific      (toBoundedInteger)
-import qualified Data.Set             as S
-import           Data.Text            (Text)
-import           Data.Typeable        (Typeable)
-import qualified Data.Vector          as V (Vector)
-import qualified Data.Vector.Unboxed  as UV
-import qualified DataS.HashMap        as HM
-import           Elm.Derive           as ELM (defaultOptions, deriveBoth,
-                                              deriveElmDef)
-import           GHC.Generics         (Generic)
-import           System.IO.Unsafe     (unsafePerformIO)
+import           Control.DeepSeq     (NFData, force)
+import           Control.Lens        (makeLenses)
+import           Data.Aeson          (FromJSON, ToJSON, Value (String), object,
+                                      pairs, parseJSON, toEncoding, toJSON,
+                                      (.=))
+import           Data.Aeson.TH       as AS (defaultOptions, deriveFromJSON,
+                                            deriveJSON, fieldLabelModifier,
+                                            rejectUnknownFields)
+import           Data.Hashable       (Hashable)
+import qualified Data.IntMap.Strict  as IM
+import           Data.SafeCopy       (SafeCopy, base, contain, deriveSafeCopy,
+                                      getCopy, putCopy, safeGet, safePut)
+import           Data.Text           (Text)
+import           Data.Typeable       (Typeable)
+import qualified Data.Vector         as V (Vector)
+import qualified Data.Vector.Unboxed as UV
+import qualified DataS.HashMap       as HM
+import           Elm.Derive          as ELM (defaultOptions, deriveElmDef)
+import           GHC.Generics        (Generic)
 
 type Timestamp = Int
+
 type Val = Double
+
 type Ix = Int
+
 type Limit = Int
+
 type Tag = Text
 
 data GroupBy = GByTimestamp | GByTag
@@ -103,7 +94,7 @@ type TagIndex = HM.HashMap Tag (IM.IntMap Ix)
 -- | The value column is in a seperate unboxed vector as it is used in every aggregation
 data TimeseriesDB = TimeseriesDB
   { _tIx    :: TimestampIndex,
-    _sIx    :: TagIndex,  -- tag/timestamp composite index
+    _sIx    :: TagIndex, -- tag/timestamp composite index
     _data'  :: V.Vector TS',
     _dataV' :: UV.Vector Val
   }
@@ -111,16 +102,16 @@ data TimeseriesDB = TimeseriesDB
 
 -- | The query parameters can be combined
 data QueryModel = Q
-  { gt      :: Maybe Timestamp,  -- get all the data with a timestamp greater then
-    lt      :: Maybe Timestamp,  -- get all the data with a timestamp less then
-    ge      :: Maybe Timestamp,  -- get all the data with a timestamp greater or equal then
-    le      :: Maybe Timestamp,  -- get all the data with a timestamp less or equal then
-    tsEq    :: Maybe Timestamp,  -- get all the data for a specific timestamp
-    tagEq   :: Maybe Tag,        -- get all the data for a specific tag
-    aggFunc :: Maybe Agg,        -- aggregate the data
-    groupBy :: Maybe GroupBy,    -- group by tag or timestamp, 'aggFunc' must be present
-    sort    :: Maybe Sort,       -- sort the result "asc" or "desc", the default is "asc"
-    limit   :: Maybe Limit       -- limit the entries returned
+  { gt      :: Maybe Timestamp, -- get all the data with a timestamp greater then
+    lt      :: Maybe Timestamp, -- get all the data with a timestamp less then
+    ge      :: Maybe Timestamp, -- get all the data with a timestamp greater or equal then
+    le      :: Maybe Timestamp, -- get all the data with a timestamp less or equal then
+    tsEq    :: Maybe Timestamp, -- get all the data for a specific timestamp
+    tagEq   :: Maybe Tag, -- get all the data for a specific tag
+    aggFunc :: Maybe Agg, -- aggregate the data
+    groupBy :: Maybe GroupBy, -- group by tag or timestamp, 'aggFunc' must be present
+    sort    :: Maybe Sort, -- sort the result "asc" or "desc", the default is "asc"
+    limit   :: Maybe Limit -- limit the entries returned
   }
   deriving (Generic, Show)
 
@@ -145,7 +136,6 @@ illegalQM _ = (False, "")
 instance (Eq k, Typeable k, Typeable v, Hashable k, SafeCopy k, SafeCopy v) => SafeCopy (HM.HashMap k v) where
   getCopy = contain $ fmap HM.fromList safeGet
   putCopy = contain . safePut . HM.toList
-
 instance SafeCopy TimeseriesDB where
   getCopy =
     contain $

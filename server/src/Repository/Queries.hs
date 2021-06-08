@@ -18,16 +18,15 @@ module Repository.Queries
   )
 where
 
-import           Aggregates                  (Average, getAverage, toAvg)
+import           Aggregates                  (getAverage, toAvg)
 import           Control.DeepSeq             (NFData, force)
-import           Control.Lens                ((%~), (.~))
+import           Control.Lens                ((%~))
 import           Control.Monad.Reader        (ask)
 import           Data.Either                 (fromLeft)
 import           Data.Foldable               (forM_)
 import           Data.Function               ((&))
 import           Data.Functor                ((<&>))
-import           Data.List                   as L (delete, foldl', map, reverse,
-                                                   sort, (\\))
+import           Data.List                   as L (delete, foldl', map)
 import           Data.Maybe                  (fromMaybe, mapMaybe)
 import           Data.Monoid                 (Sum (Sum, getSum))
 import           Data.Semigroup              (Max (Max, getMax),
@@ -41,7 +40,7 @@ import           Repository.Model            (Agg (..), Ix, QueryModel (..),
                                               QueryR (..), TS (..), TS' (..),
                                               Tag, TagIndex, TimeseriesDB (..),
                                               Timestamp, TimestampIndex, Val,
-                                              data', dataV', onlyAgg)
+                                              dataV', onlyAgg)
 import           Repository.Queries.Tag      (queryTag)
 import           Repository.Queries.TS       (queryTS)
 import           Repository.Queries.Utils    (AggRes, ExceptQ,
@@ -69,7 +68,7 @@ errMsgInsert TS {..} = "Timestamp = " ++ show timestamp ++ " and tag = " ++ show
 --   return a error message for each entrie that doesn't exist in the database
 --   if there are no errors, it means that the modification is valid
 validModify :: TagIndex -> [TS'] -> [Error]
-validModify sIx = mapMaybe (\ts@TS' {..} -> maybe (Just $ errMsgModify timestamp' tag') (const Nothing) (IM.lookup timestamp' =<< HM.lookup tag' sIx))
+validModify sIx = mapMaybe (\TS' {..} -> maybe (Just $ errMsgModify timestamp' tag') (const Nothing) (IM.lookup timestamp' =<< HM.lookup tag' sIx))
 
 -- | For a given list of data that needs to be inserted,
 --   return a error message for each entrie that already exists in the database
@@ -79,17 +78,17 @@ validInsert sIx = mapMaybe (\ts@TS {..} -> const (Just $ errMsgInsert ts) =<< IM
 
 -- | Update the timestamp index with new data
 tIxAppendTS :: [TS] -> TimestampIndex -> Ix -> TimestampIndex
-tIxAppendTS ts im ix =
+tIxAppendTS tss im ix =
   foldl' (\acc (ts, inx) -> IM.insertWith (++) ts inx acc) im appIM
   where
-    appIM = [(timestamp, [i]) | TS {..} <- ts | i <- [ix ..]]
+    appIM = [(timestamp, [i]) | TS {..} <- tss | i <- [ix ..]]
 
 -- | Update the tag/timestamp index with new data
 sIxAppendTS :: [TS] -> TagIndex -> Ix -> TagIndex
-sIxAppendTS ts m ix =
+sIxAppendTS ts m startIx =
   foldl' f m appIM
   where
-    appIM = [(tag, timestamp, i) | TS {..} <- ts | i <- [ix ..]]
+    appIM = [(tag, timestamp, i) | TS {..} <- ts | i <- [startIx ..]]
     f acc (tag, timestamp, ix) =
       case HM.lookup tag acc of
         Nothing   -> HM.insert tag (IM.fromList [(timestamp, ix)]) acc
@@ -100,17 +99,17 @@ tIxDeleteTS :: [TS'] -> TimeseriesDB -> TimestampIndex
 tIxDeleteTS dtss db@TimeseriesDB {..} =
   foldl' (\acc (ts, ix) -> IM.update (f ix) ts acc) _tIx dts
   where
-    dts = [(timestamp', unsafeIndexOf (Right dts) db) | dts@TS' {..} <- dtss]
+    dts = [(timestamp', unsafeIndexOf (Right dts') db) | dts'@TS' {..} <- dtss]
     f ix l = case L.delete ix l of
       []  -> Nothing
       ixs -> Just ixs
 
 -- | Delete data from the tag/timestamp index
 sIxDeleteTS :: [TS'] -> TimeseriesDB -> TagIndex
-sIxDeleteTS dtss db@TimeseriesDB {..} =
+sIxDeleteTS dtss TimeseriesDB {..} =
   foldl' (\acc (tag, ts) -> HM.update (fhm ts) tag acc) _sIx dhm
   where
-    dhm = [(tag', timestamp') | dts@TS' {..} <- dtss]
+    dhm = [(tag', timestamp') | TS' {..} <- dtss]
     fhm ts im =
       let nim = IM.delete ts im
        in if nim == IM.empty

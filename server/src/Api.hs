@@ -9,22 +9,19 @@
 
 module Api where
 
-import           Control.Exception.Base      (bracket)
 import           Control.Monad.Reader        (MonadReader (ask),
                                               ReaderT (runReaderT))
 import           Data.Acid                   as A (AcidState)
 import           Data.Acid.Advanced          as AA (query', update')
-import           Data.Aeson                  (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8  as C
 import           Network.HTTP.Types.Method   (methodDelete, methodGet,
                                               methodPost, methodPut)
-import           Network.Wai                 (Application, Middleware)
+import           Network.Wai                 (Middleware)
 import           Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors,
                                               simpleCorsResourcePolicy)
 import           Repository.Handlers
 import           Repository.Model            (QueryModel, QueryR (..), TS, TS',
-                                              Tag, TimeseriesDB, Timestamp,
-                                              illegalQM)
+                                              TimeseriesDB, illegalQM)
 import           Servant
 
 type AcidReaderT = ReaderT (AcidState TimeseriesDB) Handler

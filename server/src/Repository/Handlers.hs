@@ -17,34 +17,29 @@ module Repository.Handlers
 where
 
 import           Control.DeepSeq          (force)
-import           Control.Monad.Except     (forM_, runExceptT)
-import           Control.Monad.Reader     (ask, runReader, runReaderT)
-import           Control.Monad.State      (MonadState, evalState, get, put)
+import           Control.Monad.Except     (runExceptT)
+import           Control.Monad.Reader     (ask, runReader)
+import           Control.Monad.State      (get, put)
 import           Data.Acid                (Query, Update, makeAcidic)
 import           Data.Functor             (($>), (<&>))
-import           Data.Maybe               (fromMaybe)
 import qualified Data.Vector              as V
-import qualified Data.Vector.Mutable      as VM
 import qualified Data.Vector.Unboxed      as UV
 import qualified DataS.HashMap            as HM
 import qualified DataS.IntMap             as IM
 import           Repository.Model         (QueryModel (..), QueryR, TS (..),
-                                           TS' (..), Tag, TimeseriesDB (..),
-                                           Timestamp, data')
+                                           TS' (..), TimeseriesDB (..))
 import           Repository.Queries       (Error, query, sIxAppendTS,
                                            sIxDeleteTS, tIxAppendTS,
-                                           tIxDeleteTS, unsafeIndexOf,
-                                           vDeleteTS, vUpdateTS, validInsert,
-                                           validModify)
+                                           tIxDeleteTS, vDeleteTS, vUpdateTS,
+                                           validInsert, validModify)
 import           Repository.Queries.Utils (InternalQ (InternalQ), simpleTS)
-import           System.IO.Unsafe         (unsafePerformIO)
 
 -- | Insert new data
 --   if some data already exists, return a list of errors
 --   else proceed with inserting and return an empty list
 insertTS :: [TS] -> Update TimeseriesDB [Error]
 insertTS ts = do
-  db@TimeseriesDB {..} <- get
+  TimeseriesDB {..} <- get
   case validInsert _sIx ts of
     [] ->
       let startIx = V.length _data'
@@ -98,6 +93,6 @@ clearTS dts = case dts of
 filterTS ::
   QueryModel ->
   Query TimeseriesDB (Either Error QueryR)
-filterTS qm@Q {..} = ask <&> runReader (runExceptT query) . InternalQ qm
+filterTS qm = ask <&> runReader (runExceptT query) . InternalQ qm
 
 makeAcidic ''TimeseriesDB ['insertTS, 'clearTS, 'filterTS, 'updateTS]

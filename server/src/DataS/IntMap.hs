@@ -40,7 +40,7 @@ getGT re k im =
       | nomatch k p m -> if mask k m > p then Nil else im
       | zero k m -> Bin p m (getGT re k l) r
       | otherwise -> getGT re k r
-    t@(Tip ky y)
+    t@(Tip ky _)
       | k < ky -> t
       | re && k == ky -> t
       | otherwise -> Nil
@@ -55,7 +55,7 @@ getLT re k im =
       | nomatch k p m -> if mask k m < p then Nil else im
       | zero k m -> getLT re k l
       | otherwise -> Bin p m l $ getLT re k r
-    t@(Tip ky y)
+    t@(Tip ky _)
       | k > ky -> t
       | re && k == ky -> t
       | otherwise -> Nil
@@ -67,7 +67,7 @@ foldMapDesc f = go
   where
     go Nil           = mempty
     go (Tip _ v)     = f v
-    go (Bin _ m l r) = go r `mappend` go l
+    go (Bin _ _ l r) = go r `mappend` go l
 
 -- | foldMapWithKey in a descending order
 foldMapWithKeyDesc :: Monoid m => (Key -> a -> m) -> IM.IntMap a -> m
@@ -75,7 +75,7 @@ foldMapWithKeyDesc f = go
   where
     go Nil           = mempty
     go (Tip kx x)    = f kx x
-    go (Bin _ m l r) = go r `mappend` go l
+    go (Bin _ _ l r) = go r `mappend` go l
 
 -- | Choose a foldMap depending on the 'aggFunc' and the 'sort'
 --   use a strict foldMap if 'aggFunc' is present in the query

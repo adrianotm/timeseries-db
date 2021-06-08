@@ -6,8 +6,7 @@ where
 import           Api                      (app)
 import           Control.Exception.Base   (bracket)
 import           Data.Acid.Local          (createCheckpointAndClose,
-                                           openLocalCompactState,
-                                           openLocalState)
+                                           openLocalCompactState)
 import           Data.Vector              as V (empty)
 import           Data.Vector.Unboxed      as UV (empty)
 import           DataS.HashMap            as HM (empty)
